@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quay thưởng</title>
+</head>
+<body>
+<h1>Quay thưởng</h1>
+<label for="customerAccount">Nhập tài khoản:</label>
+<input type="text" id="customerAccount" placeholder="Nhập tài khoản">
+<button onclick="spin()">Quay thưởng</button>
+<p id="result"></p>
+
+<script>
+    function spin() {
+        let customerAccount = document.getElementById('customerAccount').value;
+        if (!customerAccount) {
+            alert("Vui lòng nhập tài khoản!");
+            return;
+        }
+
+        fetch('/spin?customerAccount=' + encodeURIComponent(customerAccount), { method: 'POST' })
+            .then(response => response.text())
+            .then(result => {
+                document.getElementById('result').innerText = result;
+            });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Upload Cấu Hình</title>
+</head>
+<body>
+<h1>Upload File Cấu Hình</h1>
+<p th:text="${message}" style="color: green;"></p>
+
+<!-- Form upload phần thưởng -->
+<h2>Upload Phần Thưởng</h2>
+<form method="POST" action="/admin/upload-rewards" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv" required>
+    <button type="submit">Upload CSV Phần Thưởng</button>
+</form>
+
+<!-- Form upload giờ vàng -->
+<h2>Upload Giờ Vàng</h2>
+<form method="POST" action="/admin/upload-golden-hours" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv" required>
+    <button type="submit">Upload CSV Giờ Vàng</button>
+</form>
+</body>
+</html>
