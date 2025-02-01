@@ -1,16 +1,26 @@
-name: Build and Test
-on: [push]
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up JDK 17
-        uses: actions/setup-java@v2
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-      - name: Build with Gradle
-        run: ./gradlew build
+name: Build and Test  
+on: [push]  
+jobs:  
+  build:  
+    runs-on: ubuntu-latest  
+    steps:  
+      - uses: actions/checkout@v2  
+      - name: Set up JDK 17  
+        uses: actions/setup-java@v2  
+        with:  
+          java-version: '17'  
+          distribution: 'temurin'  
+      - name: Create archive directory  
+        run: mkdir -p archive  
+      - name: Zip source code  
+        run: |  
+          zip -r archive/source.zip . -x "*.git*" "archive/*"  
+      - name: Grant execute permission for gradlew  
+        run: chmod +x gradlew  
+      - name: Build with Gradle  
+        run: ./gradlew build  
+      - name: Upload archive as artifact  
+        uses: actions/upload-artifact@v3  
+        with:  
+          name: source-archive  
+          path: archive
