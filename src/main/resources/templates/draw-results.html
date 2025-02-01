@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Kết quả bốc thăm</title>
+</head>
+<body>
+<h1>Kết quả bốc thăm</h1>
+
+<div th:if="${not #lists.isEmpty(spinResults)}">
+    <ul>
+        <li th:each="result : ${spinResults}">
+            <span th:text="'Xin chúc mừng ' + ${result.customerId} + ' đã trúng ' + ${result.rewardName}"></span>
+        </li>
+    </ul>
+
+</div>
+
+<div th:unless="${not #lists.isEmpty(spinResults)}">
+    <span>Chưa có ai trúng thưởng.</span>
+</div>
+<a href="/addParticipant">Thêm người chơi</a>
+
+
+</body>
+</html>

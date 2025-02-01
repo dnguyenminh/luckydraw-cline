@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class LuckyDrawController {
 
-    @GetMapping("/spin")
-    public String showSpinPage() {
-        return "spin";  // Tự động tìm `src/main/resources/templates/spin.html`
-    }
+//    @GetMapping("/spin")
+//    public String showSpinPage() {
+//        return "spin";  // Tự động tìm `src/main/resources/templates/spin.html`
+//    }
 }

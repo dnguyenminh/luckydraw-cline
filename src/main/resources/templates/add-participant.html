@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thêm người chơi</title>
+</head>
+<body>
+<h1>Thêm người chơi</h1>
+
+<form th:action="@{/addParticipant}" method="post">
+    <label for="customerId">Mã khách hàng:</label>
+    <input type="text" id="customerId" name="customerId" required><br><br>
+    <input type="submit" value="Thêm">
+</form>
+
+<div th:if="${message}">
+    <p th:text="${message}"></p>
+</div>
+
+
+</body>
+</html>

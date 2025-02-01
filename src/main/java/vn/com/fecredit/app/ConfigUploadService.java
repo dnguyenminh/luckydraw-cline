@@ -15,11 +15,11 @@ import java.util.stream.Collectors;
 @Service
 public class ConfigUploadService {
     private final RewardRepository rewardRepository;
-    private final GoldenHourRepository goldenHourRepository;
+    private final GoldenHourConfigRepository goldenHourConfigRepository;
 
-    public ConfigUploadService(RewardRepository rewardRepository, GoldenHourRepository goldenHourRepository) {
+    public ConfigUploadService(RewardRepository rewardRepository, GoldenHourConfigRepository goldenHourConfigRepository) {
         this.rewardRepository = rewardRepository;
-        this.goldenHourRepository = goldenHourRepository;
+        this.goldenHourConfigRepository = goldenHourConfigRepository;
     }
 
     // Xử lý upload file phần thưởng
@@ -49,12 +49,12 @@ public class ConfigUploadService {
     // Xử lý upload file giờ vàng
     public void uploadGoldenHourConfig(MultipartFile file) throws Exception {
         try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
-            CsvToBean<GoldenHour> csvToBean = new CsvToBeanBuilder<GoldenHour>(reader)
-                    .withType(GoldenHour.class)
+            CsvToBean<GoldenHourConfig> csvToBean = new CsvToBeanBuilder<GoldenHourConfig>(reader)
+                    .withType(GoldenHourConfig.class)
                     .withIgnoreLeadingWhiteSpace(true)
                     .build();
-            List<GoldenHour> goldenHours = csvToBean.parse();
-            goldenHourRepository.saveAll(goldenHours);
+            List<GoldenHourConfig> goldenHourConfigs = csvToBean.parse();
+            goldenHourConfigRepository.saveAll(goldenHourConfigs);
         }
     }
 }

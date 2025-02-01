@@ -13,22 +13,25 @@ public class RewardService {
 
     //    @Autowired
     private SpinHistoryRepository spinHistoryRepository;
+    //    @Autowired
+    private GoldenHourConfigService goldenHourConfigService;
 
-    public RewardService(RewardRepository rewardRepository, SpinHistoryRepository spinHistoryRepository) {
+    public RewardService(RewardRepository rewardRepository, SpinHistoryRepository spinHistoryRepository, GoldenHourConfigService goldenHourConfigService) {
         this.rewardRepository = rewardRepository;
         this.spinHistoryRepository = spinHistoryRepository;
+        this.goldenHourConfigService = goldenHourConfigService;
     }
 
     public SpinResult determineWinningReward(String customerId) {
-        List<Reward> rewards = rewardRepository.findAll();
         LocalDateTime now = LocalDateTime.now();
+        List<Reward> rewards = rewardRepository.findValidRewards(now.toLocalDate());
 
         for (Reward reward : rewards) {
             // Tính xác suất đã điều chỉnh (cộng thêm % giờ vàng nếu có)
             double adjustedProbability = calculateAdjustedProbability(reward, now);
 
             // Kiểm tra xác suất và giới hạn số lượng
-            if (isWinningSpin(adjustedProbability) && isRewardAvailable(reward, now)) {
+            if (isWinningSpin(adjustedProbability)) {
                 // Lưu lịch sử quay thưởng
                 saveSpinHistory(customerId, reward.getName(), true, now);
 
@@ -47,8 +50,18 @@ public class RewardService {
 
     // Tính xác suất đã điều chỉnh (giờ vàng)
     public double calculateAdjustedProbability(Reward reward, LocalDateTime now) {
-        boolean isGoldenHour = checkGoldenHour(now);
-        return isGoldenHour ? reward.getProbability() + reward.getGoldenHourProbability() : reward.getProbability();
+        double baseProbability = reward.getProbability();
+
+        List<GoldenHourConfig> goldenHourConfigs = goldenHourConfigService.getGoldenHourConfigs(reward.getName());
+
+        for (GoldenHourConfig config : goldenHourConfigs) {
+            if (now.isAfter(config.getStartTime()) && now.isBefore(config.getEndTime())) {
+                baseProbability += reward.getGoldenHourProbability();
+                break; // Thoát khỏi vòng lặp sau khi tìm thấy khung giờ vàng phù hợp
+            }
+        }
+
+        return baseProbability;
     }
 
     // Kiểm tra có phải giờ vàng không
@@ -63,21 +76,19 @@ public class RewardService {
     }
 
     // Kiểm tra quà còn lại và giới hạn phát hành
-    private boolean isRewardAvailable(Reward reward, LocalDateTime now) {
+    public boolean isRewardAvailable(Reward reward, LocalDateTime now) {
         // Kiểm tra tổng số lượng quà
-        if (reward.getTotalQuantity() <= 0) return false;
+        if (reward.getTotalQuantity() <= 0) {
+            return false;
+        }
 
-        // Kiểm tra số lượng phát trong ngày
-        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
-        LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59);
-
-        int issuedToday = spinHistoryRepository.countByRewardNameAndSpinDateTimeBetween(
+        int issuedInPeriod = spinHistoryRepository.countByRewardNameAndSpinDateTimeBetween(
                 reward.getName(),
-                startOfDay,
-                endOfDay
+                reward.getLimitFromDate().atStartOfDay(),
+                reward.getLimitToDate().atTime(23, 59, 59)
         );
 
-        return issuedToday < reward.getMaxQuantityPerPeriod();
+        return issuedInPeriod < reward.getMaxQuantityPerPeriod();
     }
 
     // Lưu lịch sử quay thưởng

@@ -72,12 +72,43 @@
 
 * **Bảng cấu hình giờ vàng**:
 
-| Ngày bắt đầu | Ngày kết thúc | Giờ vàng sáng | Giờ vàng tối |
-|---|---|---|---|
-| 01-02-2024 | 28-02-2024 | 12:00 - 14:00 | 19:00 - 21:00 |
-| 15-03-2024 | 20-03-2024 | 10:00 - 12:00 | 18:00 - 22:00 |
-| 01-04-2024 | 10-04-2024 | 09:00 - 11:00 | 20:00 - 23:00 |
+Tài liệu này mô tả cách cấu hình giờ vàng cho chương trình quay thưởng. Giờ vàng cho phép tăng xác suất trúng thưởng cho một phần thưởng cụ thể trong một khoảng thời gian xác định.
 
+## Định dạng file CSV
+
+Cấu hình giờ vàng được lưu trữ trong file CSV với định dạng sau:
+
+Tên cột        | Kiểu dữ liệu | Mô tả
+----------------|--------------|-----------------------------------------------------------------------------
+rewardName     | String       | Tên của phần thưởng áp dụng giờ vàng.
+startTime      | DateTime     | Thời gian bắt đầu giờ vàng (yyyy-MM-dd HH:mm).
+endTime        | DateTime     | Thời gian kết thúc giờ vàng (yyyy-MM-dd HH:mm).
+
+
+**Ví dụ:**
+
+rewardName|startTime| endTime
+----------------|--------------|-----------------------------------------------------------------------------
+Voucher 20K|2024-07-26 12:00|2024-07-26 14:00|
+|Voucher 50K|2024-07-27 18:00|2024-07-27 20:00|
+|Voucher 20K|2024-07-28 08:00|2024-07-28 10:00|
+**Giải thích:**
+
+* **rewardName:** Tên phần thưởng được cấu hình giờ vàng. Phải khớp với `name` trong file cấu hình phần thưởng.
+* **startTime:** Thời gian bắt đầu áp dụng giờ vàng. Định dạng `yyyy-MM-dd HH:mm`.
+* **endTime:** Thời gian kết thúc áp dụng giờ vàng. Định dạng `yyyy-MM-dd HH:mm`.
+
+
+**Lưu ý:**
+
+* Mỗi dòng trong file CSV đại diện cho một khung giờ vàng.
+* Có thể có nhiều khung giờ vàng cho cùng một phần thưởng.
+* Khoảng thời gian của giờ vàng có thể chồng lấp hoặc không chồng lấp.
+* Nếu thời gian hiện tại nằm trong bất kỳ khung giờ vàng nào được cấu hình cho phần thưởng, xác suất trúng thưởng sẽ được tăng thêm giá trị `goldenHourProbability` được định nghĩa trong file cấu hình phần thưởng.
+
+## Ví dụ sử dụng
+
+Ví dụ trên cấu hình giờ vàng cho "Voucher 20K" từ 12:00 đến 14:00 ngày 26/07/2024 và "Voucher 50K" từ 18:00 đến 20:00 ngày 27/07/2024. Ngoài ra còn có giờ vàng cho "Voucher 20K" từ 08:00 đến 10:00 ngày 28/07/2024.  Điều này minh họa việc có thể có nhiều giờ vàng cho cùng một phần thưởng vào các ngày khác nhau.
 ## Lưu ý khi triển khai
 
 * **Xử lý đồng thời**: Đảm bảo xử lý đồng thời khi nhiều người dùng quay thưởng cùng lúc.
