@@ -1,10 +1,14 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.service;
 
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import vn.com.fecredit.app.model.GoldenHourConfig;
+import vn.com.fecredit.app.reposistory.GoldenHourConfigRepository;
+import vn.com.fecredit.app.model.Reward;
+import vn.com.fecredit.app.reposistory.RewardRepository;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

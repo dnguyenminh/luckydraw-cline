@@ -1,4 +1,4 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.model;
 
 public class SpinResult {
     private boolean isWinner;

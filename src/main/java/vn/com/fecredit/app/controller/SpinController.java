@@ -1,9 +1,11 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.controller;
 
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import vn.com.fecredit.app.service.RewardService;
+import vn.com.fecredit.app.model.SpinResult;
 
 import java.security.Principal;
 

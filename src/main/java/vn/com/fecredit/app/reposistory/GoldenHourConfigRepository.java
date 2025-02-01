@@ -1,6 +1,7 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.reposistory;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import vn.com.fecredit.app.model.GoldenHourConfig;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

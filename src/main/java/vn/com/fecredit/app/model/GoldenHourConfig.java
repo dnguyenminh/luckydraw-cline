@@ -1,4 +1,4 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.model;
 
 
 import com.opencsv.bean.CsvBindByName;
@@ -6,7 +6,6 @@ import com.opencsv.bean.CsvDate;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity

@@ -1,6 +1,12 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.service;
 
 import org.springframework.stereotype.Service;
+import vn.com.fecredit.app.model.GoldenHourConfig;
+import vn.com.fecredit.app.model.Reward;
+import vn.com.fecredit.app.model.SpinHistory;
+import vn.com.fecredit.app.model.SpinResult;
+import vn.com.fecredit.app.reposistory.RewardRepository;
+import vn.com.fecredit.app.reposistory.SpinHistoryRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;

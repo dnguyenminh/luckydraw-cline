@@ -1,4 +1,4 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.model;
 
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvDate;

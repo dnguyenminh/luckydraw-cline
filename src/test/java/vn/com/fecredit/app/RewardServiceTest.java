@@ -5,6 +5,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import vn.com.fecredit.app.model.GoldenHourConfig;
+import vn.com.fecredit.app.model.Reward;
+import vn.com.fecredit.app.model.SpinResult;
+import vn.com.fecredit.app.reposistory.RewardRepository;
+import vn.com.fecredit.app.reposistory.SpinHistoryRepository;
+import vn.com.fecredit.app.service.GoldenHourConfigService;
+import vn.com.fecredit.app.service.RewardService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

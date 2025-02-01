@@ -1,8 +1,9 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.reposistory;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import vn.com.fecredit.app.model.SpinHistory;
 
 import java.time.LocalDateTime;
 

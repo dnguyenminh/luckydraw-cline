@@ -1,4 +1,6 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.service;
+
+import vn.com.fecredit.app.model.GoldenHourConfig;
 
 import java.util.List;
 

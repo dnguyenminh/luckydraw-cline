@@ -1,4 +1,4 @@
-package vn.com.fecredit.app;
+package vn.com.fecredit.app.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
