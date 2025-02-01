@@ -15,7 +15,7 @@ jobs:
       - name: Zip source code  
         run: |  
           zip -r archive/source.zip . -x "*.git*" "archive/*"  
-      - name: Grant execute permission for gradlew  
+      - name: Grant execute permission for gradlew (again)  
         run: chmod +x gradlew  
       - name: Build with Gradle  
         run: ./gradlew build  
