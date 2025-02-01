@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -19,26 +19,15 @@ public class SpinHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String customerId;
+    @Column(nullable = false)
     private String rewardName;
+    @Column(nullable = false)
     private boolean winner;
-    private LocalDate spinDate;
+    @Column(nullable = false)
+    private LocalDateTime spinDateTime;
 
-//    public String getCustomerId() {
-//        return customerId;
-//    }
-//
-//    public String getRewardName() {
-//        return rewardName;
-//    }
-//
-//    public boolean isWinner() {
-//        return isWinner;
-//    }
-//
-//    public LocalDate getSpinDate() {
-//        return spinDate;
-//    }
 }
 
 

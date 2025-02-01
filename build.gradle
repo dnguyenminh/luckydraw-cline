@@ -22,6 +22,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
+
 	implementation 'com.opencsv:opencsv:5.7.1' // Xử lý file CSV
 	implementation 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'

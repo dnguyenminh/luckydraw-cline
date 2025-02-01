@@ -1,5 +1,6 @@
 package vn.com.fecredit.app;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,7 @@ public class AdminController {
     }
 
     // Xử lý upload file phần thưởng
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/admin/upload-rewards")
     public String uploadRewards(@RequestParam("file") MultipartFile file, Model model) {
         try {

@@ -1,53 +1,146 @@
 package vn.com.fecredit.app;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
-import java.util.Arrays;
+import java.time.LocalDateTime;
+import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-class RewardServiceTest {
+@ExtendWith(MockitoExtension.class)
+public class RewardServiceTest {
 
-    private final RewardRepository rewardRepository = mock(RewardRepository.class);
-    private final SpinHistoryRepository spinHistoryRepository = mock(SpinHistoryRepository.class);
-    private final RewardService rewardService = new RewardService(rewardRepository, spinHistoryRepository);
+    @Mock
+    private RewardRepository rewardRepository;
+
+    @Mock
+    private SpinHistoryRepository spinHistoryRepository;
+
+    @InjectMocks
+    private RewardService rewardService;
 
     @Test
-    void shouldReturnPrizeWhenWinning() {
+    void determineWinningReward_WhenNotWinning_ReturnsLoss() {
+        // Giả lập phần thưởng có xác suất 0%
         Reward reward = Reward.builder()
-                .name("Xe Máy")
+                .name("Voucher 20K")
+                .probability(0.0)
                 .totalQuantity(10)
-                .probability(1.0)
-                .goldenHourProbability(5.0)
+                .maxQuantityPerPeriod(5)
                 .build();
 
-        when(rewardRepository.findAll()).thenReturn(Arrays.asList(reward));
-        when(spinHistoryRepository.countByCustomerIdAndDate("user123", LocalDate.now())).thenReturn(0L);
+        when(rewardRepository.findAll()).thenReturn(List.of(reward));
 
-        String result = rewardService.spin("user123");
+        // Gọi hàm
+        SpinResult result = rewardService.determineWinningReward("user123");
 
-        assertThat(result).contains("Bạn đã trúng Xe Máy");
+        // Kiểm tra kết quả
+        assertFalse(result.isWinner());
+        verify(spinHistoryRepository).save(argThat(history ->
+                history.getCustomerId().equals("user123") &&
+                        !history.isWinner()
+        ));
     }
 
     @Test
-    void shouldReturnMessageWhenLosing() {
-        when(rewardRepository.findAll()).thenReturn(Arrays.asList());
-        when(spinHistoryRepository.countByCustomerIdAndDate("user123", LocalDate.now())).thenReturn(0L);
+    void determineWinningReward_WhenWinning_ReturnsWin() {
+        // Giả lập phần thưởng có xác suất 100%
+        Reward reward = Reward.builder()
+                .name("Voucher 50K")
+                .probability(100.0)
+                .totalQuantity(10)
+                .maxQuantityPerPeriod(5)
+                .build();
 
-        String result = rewardService.spin("user123");
+        when(rewardRepository.findAll()).thenReturn(List.of(reward));
+        when(spinHistoryRepository.countByRewardNameAndSpinDateTimeBetween(
+                anyString(), any(LocalDateTime.class), any(LocalDateTime.class)
+        )).thenReturn(0); // Giả lập chưa phát quà nào trong ngày
 
-        assertThat(result).contains("Chúc bạn may mắn lần sau");
+        // Gọi hàm
+        SpinResult result = rewardService.determineWinningReward("user123");
+
+        // Kiểm tra kết quả
+        assertTrue(result.isWinner());
+        assertEquals("Voucher 50K", result.getRewardName());
+        verify(rewardRepository).save(argThat(r -> r.getTotalQuantity() == 9));
+        verify(spinHistoryRepository).save(argThat(history ->
+                history.isWinner() &&
+                        history.getRewardName().equals("Voucher 50K")
+        ));
     }
 
     @Test
-    void shouldNotAllowMoreThanFiveSpins() {
-        when(spinHistoryRepository.countByCustomerIdAndDate("user123", LocalDate.now())).thenReturn(5L);
+    void calculateAdjustedProbability_InGoldenHour_AddsBonus() {
+        Reward reward = Reward.builder()
+                .probability(10.0)
+                .goldenHourProbability(20.0)
+                .build();
 
-        String result = rewardService.spin("user123");
+        // Giả lập thời gian trong giờ vàng (12:00 - 14:00)
+        LocalDateTime goldenHourTime = LocalDateTime.of(2024, 4, 30, 12, 30);
+        double probability = rewardService.calculateAdjustedProbability(reward, goldenHourTime);
 
-        assertThat(result).contains("Bạn đã hết lượt quay hôm nay");
+        assertEquals(30.0, probability); // 10% + 20% = 30%
+    }
+
+    @Test
+    void determineWinningReward_WhenDailyLimitExceeded_ReturnsLoss() {
+        Reward reward = Reward.builder()
+                .name("Voucher 100K")
+                .probability(100.0)
+                .totalQuantity(10)
+                .maxQuantityPerPeriod(5)
+                .build();
+
+        when(rewardRepository.findAll()).thenReturn(List.of(reward));
+        when(spinHistoryRepository.countByRewardNameAndSpinDateTimeBetween(
+                anyString(), any(LocalDateTime.class), any(LocalDateTime.class)
+        )).thenReturn(5); // Đã phát 5 quà (đạt giới hạn)
+
+        // Gọi hàm
+        SpinResult result = rewardService.determineWinningReward("user123");
+
+        // Kiểm tra kết quả
+        assertFalse(result.isWinner());
+        verify(rewardRepository, never()).save(any());
+    }
+
+    @Test
+    void determineWinningReward_WhenTotalQuantityZero_ReturnsLoss() {
+        Reward reward = Reward.builder()
+                .name("Xe Máy Viaro")
+                .probability(100.0)
+                .totalQuantity(0) // Đã hết quà
+                .maxQuantityPerPeriod(1)
+                .build();
+
+        when(rewardRepository.findAll()).thenReturn(List.of(reward));
+
+        // Gọi hàm
+        SpinResult result = rewardService.determineWinningReward("user123");
+
+        // Kiểm tra kết quả
+        assertFalse(result.isWinner());
+        verify(rewardRepository, never()).save(any());
+    }
+
+    @Test
+    void saveSpinHistory_Always_SavesCorrectData() {
+        LocalDateTime now = LocalDateTime.now();
+        rewardService.saveSpinHistory("user123", "Voucher 200K", true, now);
+
+        verify(spinHistoryRepository).save(argThat(history ->
+                history.getCustomerId().equals("user123") &&
+                        history.getRewardName().equals("Voucher 200K") &&
+                        history.isWinner() &&
+                        history.getSpinDateTime().equals(now)
+        ));
     }
 }

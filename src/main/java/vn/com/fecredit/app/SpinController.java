@@ -11,8 +11,8 @@ public class SpinController {
     private RewardService rewardService;
 
     @PostMapping
-    public ResponseEntity<String> spin(@RequestParam String customerAccount) {
-        String result = rewardService.spin(customerAccount);
+    public ResponseEntity<SpinResult> spin(@RequestParam String customerAccount) {
+        SpinResult result = rewardService.determineWinningReward(customerAccount);
         return ResponseEntity.ok(result);
     }
 }

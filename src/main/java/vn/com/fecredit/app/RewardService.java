@@ -2,57 +2,91 @@ package vn.com.fecredit.app;
 
 import org.springframework.stereotype.Service;
 
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class RewardService {
-    private final RewardRepository rewardRepository;
-    private final SpinHistoryRepository spinHistoryRepository;
-    private static final int MAX_SPINS_PER_DAY = 5;
+    //    @Autowired
+    private RewardRepository rewardRepository;
+
+    //    @Autowired
+    private SpinHistoryRepository spinHistoryRepository;
 
     public RewardService(RewardRepository rewardRepository, SpinHistoryRepository spinHistoryRepository) {
         this.rewardRepository = rewardRepository;
         this.spinHistoryRepository = spinHistoryRepository;
     }
 
-    public String spin(String customerId) {
-        if (!canSpin(customerId)) {
-            return "Bạn đã hết lượt quay hôm nay!";
-        }
-
+    public SpinResult determineWinningReward(String customerId) {
         List<Reward> rewards = rewardRepository.findAll();
-        boolean isGoldenHour = checkGoldenHour();
+        LocalDateTime now = LocalDateTime.now();
 
         for (Reward reward : rewards) {
-            double probability = isGoldenHour ? reward.getProbability() + reward.getGoldenHourProbability() : reward.getProbability();
-            if (new Random().nextDouble() * 100 < probability) {
-                saveSpinHistory(customerId, reward.getName(), true);
-                return "Chúc mừng " + customerId + "! Bạn đã trúng " + reward.getName();
+            // Tính xác suất đã điều chỉnh (cộng thêm % giờ vàng nếu có)
+            double adjustedProbability = calculateAdjustedProbability(reward, now);
+
+            // Kiểm tra xác suất và giới hạn số lượng
+            if (isWinningSpin(adjustedProbability) && isRewardAvailable(reward, now)) {
+                // Lưu lịch sử quay thưởng
+                saveSpinHistory(customerId, reward.getName(), true, now);
+
+                // Giảm số lượng quà tổng
+                reward.setTotalQuantity(reward.getTotalQuantity() - 1);
+                rewardRepository.save(reward);
+
+                return new SpinResult(true, reward.getName());
             }
         }
 
-        saveSpinHistory(customerId, "Không trúng", false);
-        return "Chúc bạn may mắn lần sau!";
+        // Nếu không trúng, lưu lịch sử và trả về kết quả
+        saveSpinHistory(customerId, "Không trúng thưởng", false, now);
+        return new SpinResult(false, null);
     }
 
-    private boolean checkGoldenHour() {
-        LocalTime now = LocalTime.now();
-        return now.isAfter(LocalTime.of(12, 0)) && now.isBefore(LocalTime.of(14, 0));
+    // Tính xác suất đã điều chỉnh (giờ vàng)
+    public double calculateAdjustedProbability(Reward reward, LocalDateTime now) {
+        boolean isGoldenHour = checkGoldenHour(now);
+        return isGoldenHour ? reward.getProbability() + reward.getGoldenHourProbability() : reward.getProbability();
     }
 
-    private boolean canSpin(String customerId) {
-        long todaySpins = spinHistoryRepository.countByCustomerIdAndSpinDate(customerId, java.time.LocalDate.now());
-        return todaySpins < MAX_SPINS_PER_DAY;
+    // Kiểm tra có phải giờ vàng không
+    private boolean checkGoldenHour(LocalDateTime now) {
+        int hour = now.getHour();
+        return (hour >= 12 && hour < 14); // Ví dụ: Giờ vàng từ 12h-14h
     }
 
-    private void saveSpinHistory(String customerId, String rewardName, boolean isWinner) {
+    // Kiểm tra xác suất trúng
+    private boolean isWinningSpin(double probability) {
+        return ThreadLocalRandom.current().nextDouble() * 100 < probability;
+    }
+
+    // Kiểm tra quà còn lại và giới hạn phát hành
+    private boolean isRewardAvailable(Reward reward, LocalDateTime now) {
+        // Kiểm tra tổng số lượng quà
+        if (reward.getTotalQuantity() <= 0) return false;
+
+        // Kiểm tra số lượng phát trong ngày
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59);
+
+        int issuedToday = spinHistoryRepository.countByRewardNameAndSpinDateTimeBetween(
+                reward.getName(),
+                startOfDay,
+                endOfDay
+        );
+
+        return issuedToday < reward.getMaxQuantityPerPeriod();
+    }
+
+    // Lưu lịch sử quay thưởng
+    public void saveSpinHistory(String customerId, String rewardName, boolean isWinner, LocalDateTime spinDateTime) {
         SpinHistory history = SpinHistory.builder()
                 .customerId(customerId)
                 .rewardName(rewardName)
                 .winner(isWinner)
-                .spinDate(java.time.LocalDate.now())
+                .spinDateTime(spinDateTime)
                 .build();
         spinHistoryRepository.save(history);
     }
