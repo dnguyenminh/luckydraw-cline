@@ -5,25 +5,51 @@
 </head>
 <body>
 <h1>Quay thưởng</h1>
-<label for="customerAccount">Nhập tài khoản:</label>
-<input type="text" id="customerAccount" placeholder="Nhập tài khoản">
-<button onclick="spin()">Quay thưởng</button>
-<p id="result"></p>
+
+<form id="spinForm" method="post" action="/spin">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>  <!-- CSRF token -->
+    <input type="hidden" name="eventName" id="eventName" th:value="${eventName}" />
+
+    <button type="submit">Quay thưởng</button>
+    <p id="result" th:text="${result}"></p>
+</form>
 
 <script>
-    function spin() {
-        let customerAccount = document.getElementById('customerAccount').value;
-        if (!customerAccount) {
-            alert("Vui lòng nhập tài khoản!");
+    document.getElementById('spinForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent default form submission
+
+        const eventName = document.getElementById('eventName').value;
+        if (!eventName) {
+            alert("Tên sự kiện không được bỏ trống!");
             return;
         }
 
-        fetch('/spin?customerAccount=' + encodeURIComponent(customerAccount), { method: 'POST' })
-            .then(response => response.text())
-            .then(result => {
-                document.getElementById('result').innerText = result;
+        fetch('/spin?eventName=' + encodeURIComponent(eventName), { method: 'POST' })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json(); // Expect JSON response
+            })
+            .then(data => {
+                 // Update the result message based on the response data
+                 if (data.status === "WON") {
+                     document.getElementById('result').innerText = "Chúc mừng bạn đã trúng " + data.rewardName + "!";
+                 } else if (data.status === "LOST") {
+                     document.getElementById('result').innerText = "Chúc may mắn lần sau!";
+                 }  else if (data.status === "NO_REWARD") {
+                     document.getElementById('result').innerText = "Không có phần thưởng nào!";
+                 } else {
+                     document.getElementById('result').innerText = "Đã xảy ra lỗi.";
+                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerText = "Đã xảy ra lỗi: " + error.message;
             });
-    }
+    });
+
 </script>
+
 </body>
 </html>

@@ -1,0 +1,138 @@
+:host {
+  display: block;
+}
+
+.card {
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+
+  .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    padding: 1rem;
+
+    h5 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #212529;
+      margin: 0;
+    }
+  }
+
+  .card-body {
+    padding: 1.5rem;
+
+    label {
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+      display: block;
+    }
+
+    h6 {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+  }
+}
+
+.table {
+  margin-bottom: 0;
+
+  th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-top: 0;
+  }
+
+  td {
+    vertical-align: middle;
+  }
+
+  .badge {
+    font-size: 0.875rem;
+    padding: 0.4em 0.8em;
+  }
+}
+
+.btn-group {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    i {
+      font-size: 1rem;
+    }
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .card {
+    background-color: #2b3035;
+    border-color: #495057;
+
+    .card-header {
+      background-color: #343a40;
+      border-color: #495057;
+
+      h5 {
+        color: #f8f9fa;
+      }
+    }
+  }
+
+  label.text-muted {
+    color: #adb5bd !important;
+  }
+
+  .table {
+    color: #f8f9fa;
+
+    th {
+      background-color: #343a40;
+      color: #f8f9fa;
+      border-color: #495057;
+    }
+
+    td {
+      border-color: #495057;
+    }
+
+    tbody tr:hover {
+      background-color: #343a40;
+    }
+  }
+
+  // Summary cards
+  .h5 {
+    color: #f8f9fa;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .card {
+    .card-body {
+      padding: 1rem;
+    }
+  }
+
+  .table {
+    td, th {
+      white-space: nowrap;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .btn-group {
+    flex-direction: column;
+    width: 100%;
+
+    .btn {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+  }
+}

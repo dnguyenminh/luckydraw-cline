@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Admin Reports</title>
+    <!-- Add any CSS or JavaScript includes here -->
+</head>
+<body>
+<h1>Admin Reports</h1>
+
+<h2>Reward Report</h2>
+<table th:if="${not #lists.isEmpty(rewardReportData)}">
+    <thead>
+    <tr>
+        <th>Reward Name</th>
+        <th>Total Quantity</th>
+        <th>Remaining Quantity</th>
+        <!-- ...other columns as needed -->
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="reward : ${rewardReportData}">
+        <td th:text="${reward.name}"></td>
+        <td th:text="${reward.totalQuantity}"></td>
+        <td th:text="${reward.remainingQuantity}"></td>
+        <!-- ... other data fields -->
+    </tr>
+    </tbody>
+</table>
+<p th:if="${#lists.isEmpty(rewardReportData)}">No reward data available.</p>
+
+<h2>Customer Spin Counts</h2>
+<table th:if="${not #maps.isEmpty(customerSpinCounts)}">
+    <thead>
+    <tr>
+        <th>Customer ID</th>
+        <th>Spin Count</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="entry : ${customerSpinCounts.entrySet()}">
+        <td th:text="${entry.key}"></td>
+        <td th:text="${entry.value}"></td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

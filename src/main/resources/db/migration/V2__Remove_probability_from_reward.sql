@@ -1,0 +1,1 @@
+ALTER TABLE reward DROP COLUMN IF EXISTS probability;

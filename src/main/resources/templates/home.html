@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6" lang="vi">
+<head>
+    <title>Home</title>
+</head>
+<body>
+<h1>Trang chủ</h1>
+
+<h2>Chức năng</h2>
+<ul>
+    <li sec:authorize="hasRole('CUSTOMER')"><a th:href="@{/spin}">Quay thưởng</a></li>
+    <li sec:authorize="hasAnyRole('USER', 'ADMIN')"><a th:href="@{/draw}">Rút thăm</a></li>
+    <li sec:authorize="hasRole('USER')"><a th:href="@{/addParticipant}">Thêm người chơi</a></li>
+    <li sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/upload}">Tải lên cấu hình</a></li>
+    <li sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/reports}">Báo cáo</a></li>
+    <li sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/winner-report}">Báo cáo người thắng</a></li>
+    <li><a th:href="@{/logout}">Đăng xuất</a></li>
+</ul>
+</body>
+</html>

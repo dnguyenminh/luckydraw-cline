@@ -1,0 +1,148 @@
+<div class="container-fluid">
+  <app-page-header
+    [title]="isEditMode ? 'Edit Event' : 'Create Event'"
+    backUrl="/admin/events">
+  </app-page-header>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <form [formGroup]="eventForm" (ngSubmit)="onSubmit()">
+            <div class="row g-3">
+              <!-- Name -->
+              <div class="col-12">
+                <label for="name" class="form-label">Name</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="name"
+                       formControlName="name"
+                       [class.is-invalid]="isFieldInvalid('name')">
+                <div *ngIf="isFieldInvalid('name')" class="invalid-feedback">
+                  <span *ngIf="eventForm.get('name')?.getError('required')">
+                    Name is required
+                  </span>
+                  <span *ngIf="eventForm.get('name')?.getError('maxlength')">
+                    Name must be less than 100 characters
+                  </span>
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div class="col-12">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" 
+                          id="description"
+                          rows="3"
+                          formControlName="description"
+                          [class.is-invalid]="isFieldInvalid('description')">
+                </textarea>
+                <div *ngIf="isFieldInvalid('description')" class="invalid-feedback">
+                  <span *ngIf="eventForm.get('description')?.getError('maxlength')">
+                    Description must be less than 500 characters
+                  </span>
+                </div>
+              </div>
+
+              <!-- Start Date -->
+              <div class="col-12 col-md-6">
+                <label for="startDate" class="form-label">Start Date</label>
+                <input type="datetime-local" 
+                       class="form-control" 
+                       id="startDate"
+                       formControlName="startDate"
+                       [class.is-invalid]="isFieldInvalid('startDate')">
+                <div *ngIf="isFieldInvalid('startDate')" class="invalid-feedback">
+                  <span *ngIf="eventForm.get('startDate')?.getError('required')">
+                    Start date is required
+                  </span>
+                </div>
+              </div>
+
+              <!-- End Date -->
+              <div class="col-12 col-md-6">
+                <label for="endDate" class="form-label">End Date</label>
+                <input type="datetime-local" 
+                       class="form-control" 
+                       id="endDate"
+                       formControlName="endDate"
+                       [class.is-invalid]="isFieldInvalid('endDate')">
+                <div *ngIf="isFieldInvalid('endDate')" class="invalid-feedback">
+                  <span *ngIf="eventForm.get('endDate')?.getError('required')">
+                    End date is required
+                  </span>
+                </div>
+              </div>
+
+              <!-- Default Spins -->
+              <div class="col-12 col-md-6">
+                <label for="defaultSpins" class="form-label">Default Spins</label>
+                <input type="number" 
+                       class="form-control" 
+                       id="defaultSpins"
+                       formControlName="defaultSpins"
+                       min="0"
+                       [class.is-invalid]="isFieldInvalid('defaultSpins')">
+                <div *ngIf="isFieldInvalid('defaultSpins')" class="invalid-feedback">
+                  <span *ngIf="eventForm.get('defaultSpins')?.getError('required')">
+                    Default spins is required
+                  </span>
+                  <span *ngIf="eventForm.get('defaultSpins')?.getError('min')">
+                    Default spins must be greater than or equal to 0
+                  </span>
+                </div>
+              </div>
+
+              <!-- Max Spins Per Day -->
+              <div class="col-12 col-md-6">
+                <label for="maxSpinsPerDay" class="form-label">Max Spins Per Day</label>
+                <input type="number" 
+                       class="form-control" 
+                       id="maxSpinsPerDay"
+                       formControlName="maxSpinsPerDay"
+                       min="1"
+                       [class.is-invalid]="isFieldInvalid('maxSpinsPerDay')">
+                <div *ngIf="isFieldInvalid('maxSpinsPerDay')" class="invalid-feedback">
+                  <span *ngIf="eventForm.get('maxSpinsPerDay')?.getError('required')">
+                    Max spins per day is required
+                  </span>
+                  <span *ngIf="eventForm.get('maxSpinsPerDay')?.getError('min')">
+                    Max spins per day must be greater than 0
+                  </span>
+                </div>
+              </div>
+
+              <!-- Active Status -->
+              <div class="col-12">
+                <div class="form-check">
+                  <input type="checkbox" 
+                         class="form-check-input" 
+                         id="active"
+                         formControlName="active">
+                  <label class="form-check-label" for="active">Active</label>
+                </div>
+              </div>
+
+              <!-- Form Actions -->
+              <div class="col-12">
+                <hr>
+                <div class="d-flex justify-content-end gap-2">
+                  <button type="button" 
+                          class="btn btn-secondary"
+                          (click)="onCancel()">
+                    Cancel
+                  </button>
+                  <button type="submit" 
+                          class="btn btn-primary"
+                          [disabled]="eventForm.invalid || loading">
+                    {{ isEditMode ? 'Update' : 'Create' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

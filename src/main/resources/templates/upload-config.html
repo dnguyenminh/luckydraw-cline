@@ -5,20 +5,44 @@
 </head>
 <body>
 <h1>Upload File Cấu Hình</h1>
-<p th:text="${message}" style="color: green;"></p>
 
-<!-- Form upload phần thưởng -->
+<div th:if="${message}" th:classappend="${message.startsWith('Lỗi:') ? 'error-message' : 'success-message'}" th:text="${message}"></div>
+
 <h2>Upload Phần Thưởng</h2>
 <form method="POST" action="/admin/upload-rewards" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".csv" required>
-    <button type="submit">Upload CSV Phần Thưởng</button>
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/> <div>
+    <label for="eventNameReward">Event Name:</label><br>
+    <input type="text" name="eventName" id="eventNameReward" required><br><br>
+    <input type="file" name="file" accept=".csv" required><br><br>
+    <button type="submit">Upload CSV Phần Thưởng</button> </div>
 </form>
 
-<!-- Form upload giờ vàng -->
 <h2>Upload Giờ Vàng</h2>
 <form method="POST" action="/admin/upload-golden-hours" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".csv" required>
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <label for="eventNameGoldenHour">Event Name:</label><br>
+    <input type="text" name="eventName" id="eventNameGoldenHour" required><br><br>
+    <input type="file" name="file" accept=".csv" required><br><br>
     <button type="submit">Upload CSV Giờ Vàng</button>
 </form>
+
+<h2>Upload Danh Sách Người Tham Gia</h2>
+<form method="POST" action="/admin/upload-participants" enctype="multipart/form-data">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <label for="eventNameParticipant">Event Name:</label><br>
+    <input type="text" name="eventName" id="eventNameParticipant" required><br><br>
+    <input type="file" name="file" accept=".csv" required><br><br>
+    <button type="submit">Upload CSV Danh Sách Người Tham Gia</button>
+</form>
+<style>
+    .success-message {
+        color: green;
+    }
+
+    .error-message {
+        color: red;
+    }
+</style>
+
 </body>
 </html>

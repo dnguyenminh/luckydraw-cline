@@ -1,125 +1,148 @@
 package vn.com.fecredit.app.model;
 
-import com.opencsv.bean.CsvBindByName;
-import com.opencsv.bean.CsvDate;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+@Data
 @Entity
-@Getter
-@Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Table(name = "rewards")
 public class Reward {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @CsvBindByName(column = "name")
+    @Column(nullable = false)
     private String name;
-    @CsvBindByName(column = "totalQuantity")
-    private Integer totalQuantity;
-    @CsvBindByName(column = "probability")
+
+    private String description;
+
+    @Column(nullable = false)
+    private Integer quantity;
+
+    @Column(name = "remaining_quantity")
+    private Integer remainingQuantity;
+
+    @Column(name = "max_quantity_in_period")
+    private Integer maxQuantityInPeriod;
+
+    @Column(name = "probability")
     private Double probability;
-    @CsvBindByName(column = "goldenHourProbability")
-    private Double goldenHourProbability;
-    @CsvBindByName(column = "startDate")
-    @CsvDate("yyyy-MM-dd")
-    private LocalDate startDate;
-    @CsvBindByName(column = "endDate")
-    @CsvDate("yyyy-MM-dd")
-    private LocalDate endDate;
-    @CsvBindByName(column = "limitFromDate")
-    @CsvDate("yyyy-MM-dd")
-    private LocalDate limitFromDate;
-    @CsvBindByName(column = "limitToDate")
-    @CsvDate("yyyy-MM-dd")
-    private LocalDate limitToDate;
-    @CsvBindByName(column = "maxQuantityPerPeriod")
-    private Integer maxQuantityPerPeriod;
 
-    // Getters and setters
+    @Column(name = "applicable_provinces", length = 1000)
+    private String applicableProvinces;
 
-//    public Long getId() {
-//        return id;
-//    }
-//
-//    public void setId(Long id) {
-//        this.id = id;
-//    }
-//
-//    public String getName() {
-//        return name;
-//    }
-//
-//    public void setName(String name) {
-//        this.name = name;
-//    }
-//
-//    public Integer getTotalQuantity() {
-//        return totalQuantity;
-//    }
-//
-//    public void setTotalQuantity(Integer totalQuantity) {
-//        this.totalQuantity = totalQuantity;
-//    }
-//
-//    public Double getProbability() {
-//        return probability;
-//    }
-//
-//    public void setProbability(Double probability) {
-//        this.probability = probability;
-//    }
-//
-//    public Double getGoldenHourProbability() {
-//        return goldenHourProbability;
-//    }
-//
-//    public void setGoldenHourProbability(Double goldenHourProbability) {
-//        this.goldenHourProbability = goldenHourProbability;
-//    }
-//
-//    public LocalDate getStartDate() {
-//        return startDate;
-//    }
-//
-//    public void setStartDate(LocalDate startDate) {
-//        this.startDate = startDate;
-//    }
-//
-//    public LocalDate getEndDate() {
-//        return endDate;
-//    }
-//
-//    public void setEndDate(LocalDate endDate) {
-//        this.endDate = endDate;
-//    }
-//
-//    public LocalDate getLimitFromDate() {
-//        return limitFromDate;
-//    }
-//
-//    public void setLimitFromDate(LocalDate limitFromDate) {
-//        this.limitFromDate = limitFromDate;
-//    }
-//
-//    public LocalDate getLimitToDate() {
-//        return limitToDate;
-//    }
-//
-//    public void setLimitToDate(LocalDate limitToDate) {
-//        this.limitToDate = limitToDate;
-//    }
-//
-//    public Integer getMaxQuantityPerPeriod() {
-//        return maxQuantityPerPeriod;
-//    }
-//
-//    public void setMaxQuantityPerPeriod(Integer maxQuantityPerPeriod) {
-//        this.maxQuantityPerPeriod = maxQuantityPerPeriod;
-//    }
+    @Column(name = "start_date")
+    private LocalDateTime startDate;
+
+    @Column(name = "end_date")
+    private LocalDateTime endDate;
+
+    @Column(name = "is_active")
+    private Boolean isActive;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false)
+    private Event event;
+
+    @OneToMany(mappedBy = "reward", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<GoldenHour> goldenHours = new ArrayList<>();
+
+    @OneToMany(mappedBy = "reward", cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<SpinHistory> spinHistories = new ArrayList<>();
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Version
+    private Long version;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (remainingQuantity == null) {
+            remainingQuantity = quantity;
+        }
+        if (isActive == null) {
+            isActive = true;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    public void addGoldenHour(GoldenHour goldenHour) {
+        goldenHours.add(goldenHour);
+        goldenHour.setReward(this);
+    }
+
+    public void removeGoldenHour(GoldenHour goldenHour) {
+        goldenHours.remove(goldenHour);
+        goldenHour.setReward(null);
+    }
+
+    public void setEvent(Event event) {
+        this.event = event;
+    }
+
+    public Event getEvent() {
+        return event;
+    }
+
+    public int getRemainingQuantity() {
+        return remainingQuantity != null ? remainingQuantity : 0;
+    }
+
+    public void decrementRemainingQuantity() {
+        if (remainingQuantity != null && remainingQuantity > 0) {
+            remainingQuantity--;
+        }
+    }
+
+    public boolean isAvailable(LocalDateTime time, String province) {
+        if (!isActive || remainingQuantity <= 0) {
+            return false;
+        }
+
+        if (startDate != null && time.isBefore(startDate)) {
+            return false;
+        }
+
+        if (endDate != null && time.isAfter(endDate)) {
+            return false;
+        }
+
+        if (applicableProvinces != null && !applicableProvinces.isEmpty() &&
+                !applicableProvinces.contains(province)) {
+            return false;
+        }
+
+        if (goldenHours != null && !goldenHours.isEmpty()) {
+            return goldenHours.stream()
+                    .anyMatch(gh -> gh.isActive() && gh.isWithinTimeRange(time));
+        }
+
+        return true;
+    }
+
+    public double getProbability() {
+        return probability != null ? probability : 0.0;
+    }
 }

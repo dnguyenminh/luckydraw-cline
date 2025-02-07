@@ -1,0 +1,18 @@
+<div [class]="containerClass">
+  <div class="empty-state-content">
+    <div class="icon-container">
+      <i [class]="'bi ' + icon"></i>
+    </div>
+    
+    <h3 class="title">{{ title }}</h3>
+    <p class="message">{{ message }}</p>
+    
+    <button *ngIf="showAction"
+            type="button"
+            class="btn btn-primary"
+            (click)="actionClick.emit()">
+      <i *ngIf="actionIcon" [class]="'bi ' + actionIcon + ' me-2'"></i>
+      {{ actionLabel }}
+    </button>
+  </div>
+</div>

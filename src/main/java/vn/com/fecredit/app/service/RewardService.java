@@ -1,110 +1,152 @@
 package vn.com.fecredit.app.service;
 
+import jakarta.persistence.OptimisticLockException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import vn.com.fecredit.app.model.GoldenHourConfig;
+import org.springframework.transaction.annotation.Transactional;
+import vn.com.fecredit.app.dto.GoldenHourDTO;
+import vn.com.fecredit.app.dto.RewardDTO;
+import vn.com.fecredit.app.exception.ResourceNotFoundException;
+import vn.com.fecredit.app.mapper.GoldenHourMapper;
+import vn.com.fecredit.app.mapper.RewardMapper;
+import vn.com.fecredit.app.model.Event;
+import vn.com.fecredit.app.model.GoldenHour;
 import vn.com.fecredit.app.model.Reward;
-import vn.com.fecredit.app.model.SpinHistory;
-import vn.com.fecredit.app.model.SpinResult;
-import vn.com.fecredit.app.reposistory.RewardRepository;
-import vn.com.fecredit.app.reposistory.SpinHistoryRepository;
+import vn.com.fecredit.app.repository.EventRepository;
+import vn.com.fecredit.app.repository.GoldenHourRepository;
+import vn.com.fecredit.app.repository.RewardRepository;
+import vn.com.fecredit.app.repository.SpinHistoryRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class RewardService {
-    //    @Autowired
-    private RewardRepository rewardRepository;
+    private final RewardRepository rewardRepository;
+    private final EventRepository eventRepository;
+    private final SpinHistoryRepository spinHistoryRepository;
+    private final GoldenHourService goldenHourService;
+    private final GoldenHourRepository goldenHourRepository;
+    private final RewardMapper rewardMapper;
+    private final GoldenHourMapper goldenHourMapper;
 
-    //    @Autowired
-    private SpinHistoryRepository spinHistoryRepository;
-    //    @Autowired
-    private GoldenHourConfigService goldenHourConfigService;
+//    public RewardService(
+//            RewardRepository rewardRepository,
+//            EventRepository eventRepository,
+//            SpinHistoryRepository spinHistoryRepository,
+//            GoldenHourService goldenHourService,
+//            GoldenHourRepository goldenHourRepository,
+//            RewardMapper rewardMapper,
+//            GoldenHourMapper goldenHourMapper
+//    ) {
+//        this.rewardRepository = rewardRepository;
+//        this.eventRepository = eventRepository;
+//        this.spinHistoryRepository = spinHistoryRepository;
+//        this.goldenHourService = goldenHourService;
+//        this.goldenHourRepository = goldenHourRepository;
+//        this.rewardMapper = rewardMapper;
+//        this.goldenHourMapper = goldenHourMapper;
+//    }
 
-    public RewardService(RewardRepository rewardRepository, SpinHistoryRepository spinHistoryRepository, GoldenHourConfigService goldenHourConfigService) {
-        this.rewardRepository = rewardRepository;
-        this.spinHistoryRepository = spinHistoryRepository;
-        this.goldenHourConfigService = goldenHourConfigService;
+    @Transactional(readOnly = true)
+    public List<RewardDTO> getAllRewards() {
+        return rewardRepository.findAll()
+                .stream()
+                .map(rewardMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public SpinResult determineWinningReward(String customerId) {
-        LocalDateTime now = LocalDateTime.now();
-        List<Reward> rewards = rewardRepository.findValidRewards(now.toLocalDate());
+    @Transactional(readOnly = true)
+    public RewardDTO getRewardById(Long id) {
+        return rewardRepository.findById(id)
+                .map(rewardMapper::toDTO)
+                .orElseThrow(() -> new ResourceNotFoundException("Reward", "id", id));
+    }
 
-        for (Reward reward : rewards) {
-            // Tính xác suất đã điều chỉnh (cộng thêm % giờ vàng nếu có)
-            double adjustedProbability = calculateAdjustedProbability(reward, now);
+    @Transactional
+    public RewardDTO createReward(RewardDTO.CreateRewardRequest request) {
+        Event event = eventRepository.findById(request.getEventId())
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", request.getEventId()));
+        
+        Reward reward = rewardMapper.toEntity(request);
+        reward.setEvent(event);
+        reward.setRemainingQuantity(reward.getQuantity());
+        
+        return rewardMapper.toDTO(rewardRepository.save(reward));
+    }
 
-            // Kiểm tra xác suất và giới hạn số lượng
-            if (isWinningSpin(adjustedProbability)) {
-                // Lưu lịch sử quay thưởng
-                saveSpinHistory(customerId, reward.getName(), true, now);
+    @Transactional
+    public RewardDTO updateReward(Long id, RewardDTO.UpdateRewardRequest request) {
+        Reward reward = rewardRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reward", "id", id));
+        
+        rewardMapper.updateRewardFromRequest(request, reward);
+        return rewardMapper.toDTO(rewardRepository.save(reward));
+    }
 
-                // Giảm số lượng quà tổng
-                reward.setTotalQuantity(reward.getTotalQuantity() - 1);
-                rewardRepository.save(reward);
+    @Transactional
+    public RewardDTO updateQuantity(Long id, int quantity) {
+        Reward reward = rewardRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reward", "id", id));
+        
+        reward.setQuantity(quantity);
+        reward.setRemainingQuantity(quantity);
+        return rewardMapper.toDTO(rewardRepository.save(reward));
+    }
 
-                return new SpinResult(true, reward.getName());
-            }
+    @Transactional
+    public void deleteReward(Long id) {
+        if (!rewardRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Reward", "id", id);
         }
-
-        // Nếu không trúng, lưu lịch sử và trả về kết quả
-        saveSpinHistory(customerId, "Không trúng thưởng", false, now);
-        return new SpinResult(false, null);
+        rewardRepository.deleteById(id);
     }
 
-    // Tính xác suất đã điều chỉnh (giờ vàng)
-    public double calculateAdjustedProbability(Reward reward, LocalDateTime now) {
-        double baseProbability = reward.getProbability();
+    @Transactional
+    public RewardDTO addGoldenHour(Long rewardId, GoldenHourDTO.CreateRequest createRequest) {
+        Reward reward = rewardRepository.findById(rewardId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reward", "id", rewardId));
 
-        List<GoldenHourConfig> goldenHourConfigs = goldenHourConfigService.getGoldenHourConfigs(reward.getName());
+        GoldenHour goldenHour = goldenHourMapper.createEntity(createRequest);
+        goldenHour.setReward(reward);
+        reward.addGoldenHour(goldenHour);
 
-        for (GoldenHourConfig config : goldenHourConfigs) {
-            if (now.isAfter(config.getStartTime()) && now.isBefore(config.getEndTime())) {
-                baseProbability += reward.getGoldenHourProbability();
-                break; // Thoát khỏi vòng lặp sau khi tìm thấy khung giờ vàng phù hợp
-            }
+        return rewardMapper.toDTO(rewardRepository.save(reward));
+    }
+
+    @Transactional
+    public RewardDTO removeGoldenHour(Long rewardId, Long goldenHourId) {
+        Reward reward = rewardRepository.findById(rewardId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reward", "id", rewardId));
+        
+        GoldenHour goldenHour = goldenHourRepository.findById(goldenHourId)
+                .orElseThrow(() -> new ResourceNotFoundException("GoldenHour", "id", goldenHourId));
+
+        reward.removeGoldenHour(goldenHour);
+        return rewardMapper.toDTO(rewardRepository.save(reward));
+    }
+
+    @Transactional
+    public Optional<Reward> decrementRemainingQuantity(Long id) {
+        try {
+            return rewardRepository.findById(id)
+                    .map(reward -> {
+                        if (reward.getRemainingQuantity() > 0) {
+                            reward.decrementRemainingQuantity();
+                            return rewardRepository.save(reward);
+                        }
+                        return null;
+                    });
+        } catch (OptimisticLockException e) {
+            return Optional.empty();
         }
-
-        return baseProbability;
     }
 
-    // Kiểm tra có phải giờ vàng không
-    private boolean checkGoldenHour(LocalDateTime now) {
-        int hour = now.getHour();
-        return (hour >= 12 && hour < 14); // Ví dụ: Giờ vàng từ 12h-14h
-    }
-
-    // Kiểm tra xác suất trúng
-    private boolean isWinningSpin(double probability) {
-        return ThreadLocalRandom.current().nextDouble() * 100 < probability;
-    }
-
-    // Kiểm tra quà còn lại và giới hạn phát hành
-    public boolean isRewardAvailable(Reward reward, LocalDateTime now) {
-        // Kiểm tra tổng số lượng quà
-        if (reward.getTotalQuantity() <= 0) {
-            return false;
-        }
-
-        int issuedInPeriod = spinHistoryRepository.countByRewardNameAndSpinDateTimeBetween(
-                reward.getName(),
-                reward.getLimitFromDate().atStartOfDay(),
-                reward.getLimitToDate().atTime(23, 59, 59)
-        );
-
-        return issuedInPeriod < reward.getMaxQuantityPerPeriod();
-    }
-
-    // Lưu lịch sử quay thưởng
-    public void saveSpinHistory(String customerId, String rewardName, boolean isWinner, LocalDateTime spinDateTime) {
-        SpinHistory history = SpinHistory.builder()
-                .customerId(customerId)
-                .rewardName(rewardName)
-                .winner(isWinner)
-                .spinDateTime(spinDateTime)
-                .build();
-        spinHistoryRepository.save(history);
+    @Transactional(readOnly = true)
+    public boolean isRewardAvailable(Reward reward, LocalDateTime dateTime, String province) {
+        return reward.isAvailable(dateTime, province);
     }
 }

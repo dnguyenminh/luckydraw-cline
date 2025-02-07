@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@angular/common": "^19.1.4",
+    "@angular/core": "^19.1.4",
+    "@angular/forms": "^19.1.4",
+    "@angular/router": "^19.1.4",
+    "@ng-bootstrap/ng-bootstrap": "^18.0.0"
+  }
+}
