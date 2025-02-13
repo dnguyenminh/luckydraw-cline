@@ -155,6 +155,19 @@ public class GlobalExceptionHandler {
             getFileOperationErrorMessage(ex), path);
     }
 
+    @ExceptionHandler({
+            BusinessException.class
+    })
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ErrorResponse> handleBusinessExceptionException(Exception ex, WebRequest request) {
+        String path = getRequestPath(request);
+        setMDCContext(path);
+        log.error("Business exception: {}", ex.getMessage());
+        return buildErrorResponseWithHeaders(HttpStatus.BAD_REQUEST, "Business error",
+                ex.getMessage(), path);
+    }
+
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<ErrorResponse> handleAllUncaughtException(Exception ex, WebRequest request) {
