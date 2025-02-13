@@ -31,7 +31,7 @@ jobs:
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client netcat
+          sudo apt-get install -y postgresql-client netcat-openbsd
 
       - name: Wait for PostgreSQL
         run: |
