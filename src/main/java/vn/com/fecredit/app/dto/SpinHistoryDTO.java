@@ -13,11 +13,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class SpinHistoryDTO {
     private Long id;
-    private Long participantId;
-    private String participantName;
-    private Long rewardId;
-    private String rewardName;
+    private SimpleParticipantDTO participant;
+    private SimpleRewardDTO reward;
     private LocalDateTime spinTime;
-    private Integer remainingSpins;
+    private Long remainingSpins;
     private Double currentMultiplier;
+    private Boolean isGoldenHour;
+    private Boolean won;
 }

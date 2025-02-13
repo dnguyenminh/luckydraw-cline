@@ -39,7 +39,7 @@
     
     Tổng số lần quay là 100.
     Phần quà 2 sẽ đặt ngẫu nhiên những vị trí từ 0-99   
-    Phần quà 1 sẽ đặt ngẫu nhiên những vị trí từ 0-99 và không trùng vói vị trí của phần quà 2   
+    Phần quà 1 sẽ đặt ngẫu nhiên những vị trí từ 0-99 và không trùng với vị trí của phần quà 2   
     lần đầu quay trúng hay không trúng thì lần quay kế tiếp sẽ:
     Phần quà 2 sẽ đặt ngẫu nhiên những vị trí từ 0-98   
     Phần quà 1 sẽ đặt ngẫu nhiên những vị trí từ 0-98 và không trùng vói vị trí của phần quà 2
@@ -189,7 +189,7 @@
 3. **Cấu hình database:**
   * **Production:** Cấu hình thông tin kết nối PostgreSQL trong file `application.properties`.  Tạo file này trong thư mục `src/main/resources` nếu chưa có.
   * **Development:** Ứng dụng sử dụng H2 embedded database cho môi trường development. Cấu hình nằm trong `application-dev.properties` (đã có sẵn).  Để chạy với profile `dev`, thêm `-Dspring.profiles.active=dev` vào VM Options khi chạy ứng dụng từ IDE, hoặc sử dụng argument `-Pdev` khi chạy với Gradle.
-  * **Testing:** Ứng dụng sử dụng H2 embedded database cho môi trường test.  Cấu hình nằm trong `application-test.properties` hoặc `src/test/resources/application-test.properties`. Spring Boot tự động kích hoạt profile `test` khi chạy test.
+  * **Testing:** Ứng dụng sử dụng Potgress cho môi trường test.  Cấu hình nằm trong `application-test.properties` hoặc `src/test/resources/application-test.properties`. Spring Boot tự động kích hoạt profile `test` khi chạy test.
 4. **Build project:**
   * Dùng IntelliJ IDEA: Build project (Build > Build Project).
   * Dùng command line: `./gradlew build`

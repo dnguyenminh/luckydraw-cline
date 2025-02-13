@@ -1,36 +1,40 @@
 package vn.com.fecredit.app.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import vn.com.fecredit.app.dto.SpinHistoryDTO;
-import vn.com.fecredit.app.dto.spin.SpinCheckResponse;
-import vn.com.fecredit.app.dto.spin.SpinRequest;
-import vn.com.fecredit.app.mapper.SpinHistoryMapper;
-import vn.com.fecredit.app.model.LuckyDrawResult;
+import vn.com.fecredit.app.dto.SpinRequest;
+import vn.com.fecredit.app.model.SpinHistory;
 import vn.com.fecredit.app.service.SpinService;
+import jakarta.validation.Valid;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/spins")
+@RequiredArgsConstructor
+@Slf4j
 public class SpinController {
+
     private final SpinService spinService;
-    private final SpinHistoryMapper spinHistoryMapper;
-
-    @GetMapping("/{participantId}/history")
-    public ResponseEntity<SpinHistoryDTO> getParticipantSpinHistory(@PathVariable Long participantId) {
-        return ResponseEntity.ok(spinHistoryMapper.toDTO(spinService.getLatestSpinHistory(participantId)));
-    }
-
-    @PostMapping("/check")
-    public ResponseEntity<SpinCheckResponse> checkSpinEligibility(@Valid @RequestBody SpinRequest request) {
-        return ResponseEntity.ok(spinService.checkSpinEligibility(request));
-    }
 
     @PostMapping
-    public ResponseEntity<SpinHistoryDTO> spin(@Valid @RequestBody SpinRequest request) {
-        LuckyDrawResult result = spinService.spin(request);
-        return ResponseEntity.ok(spinHistoryMapper.toDTO(result.getSpinHistory()));
+    public ResponseEntity<SpinHistory> spin(@Valid @RequestBody SpinRequest request) {
+        // Pre-check eligibility before actual spin to fail fast
+        spinService.checkSpinEligibility(request);
+        
+        SpinHistory result = spinService.spin(request);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/history/latest/{participantId}")
+    public ResponseEntity<SpinHistory> getLatestSpin(@PathVariable Long participantId) {
+        SpinHistory history = spinService.getLatestSpinHistory(participantId);
+        return history != null ? ResponseEntity.ok(history) : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/remaining/{eventId}")
+    public ResponseEntity<Long> getRemainingSpins(@PathVariable Long eventId) {
+        long remainingSpins = spinService.getRemainingSpins(eventId);
+        return ResponseEntity.ok(remainingSpins);
     }
 }

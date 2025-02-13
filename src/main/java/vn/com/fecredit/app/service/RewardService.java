@@ -1,9 +1,16 @@
 package vn.com.fecredit.app.service;
 
-import jakarta.persistence.OptimisticLockException;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.OptimisticLockException;
+import lombok.RequiredArgsConstructor;
 import vn.com.fecredit.app.dto.GoldenHourDTO;
 import vn.com.fecredit.app.dto.RewardDTO;
 import vn.com.fecredit.app.exception.ResourceNotFoundException;
@@ -15,41 +22,18 @@ import vn.com.fecredit.app.model.Reward;
 import vn.com.fecredit.app.repository.EventRepository;
 import vn.com.fecredit.app.repository.GoldenHourRepository;
 import vn.com.fecredit.app.repository.RewardRepository;
-import vn.com.fecredit.app.repository.SpinHistoryRepository;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class RewardService {
+    private static final int MAX_RETRIES = 3;
+    private static final long RETRY_DELAY = 100L; // 100ms
+    
     private final RewardRepository rewardRepository;
     private final EventRepository eventRepository;
-    private final SpinHistoryRepository spinHistoryRepository;
-    private final GoldenHourService goldenHourService;
     private final GoldenHourRepository goldenHourRepository;
     private final RewardMapper rewardMapper;
     private final GoldenHourMapper goldenHourMapper;
-
-//    public RewardService(
-//            RewardRepository rewardRepository,
-//            EventRepository eventRepository,
-//            SpinHistoryRepository spinHistoryRepository,
-//            GoldenHourService goldenHourService,
-//            GoldenHourRepository goldenHourRepository,
-//            RewardMapper rewardMapper,
-//            GoldenHourMapper goldenHourMapper
-//    ) {
-//        this.rewardRepository = rewardRepository;
-//        this.eventRepository = eventRepository;
-//        this.spinHistoryRepository = spinHistoryRepository;
-//        this.goldenHourService = goldenHourService;
-//        this.goldenHourRepository = goldenHourRepository;
-//        this.rewardMapper = rewardMapper;
-//        this.goldenHourMapper = goldenHourMapper;
-//    }
 
     @Transactional(readOnly = true)
     public List<RewardDTO> getAllRewards() {
@@ -89,12 +73,42 @@ public class RewardService {
 
     @Transactional
     public RewardDTO updateQuantity(Long id, int quantity) {
-        Reward reward = rewardRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reward", "id", id));
-        
-        reward.setQuantity(quantity);
-        reward.setRemainingQuantity(quantity);
-        return rewardMapper.toDTO(rewardRepository.save(reward));
+        int attempts = 0;
+        while (attempts < MAX_RETRIES) {
+            try {
+                Reward reward = rewardRepository.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Reward", "id", id));
+                
+                // Validate quantity
+                if (quantity < 0) {
+                    throw new IllegalArgumentException("Quantity cannot be negative");
+                }
+
+                // Calculate new remaining quantity proportionally
+                double ratio = quantity / (double) reward.getQuantity();
+                int newRemainingQuantity = (int) Math.ceil(reward.getRemainingQuantity() * ratio);
+                
+                reward.setQuantity(quantity);
+                reward.setRemainingQuantity(newRemainingQuantity);
+                
+                Reward savedReward = rewardRepository.save(reward);
+                return rewardMapper.toDTO(savedReward);
+                
+            } catch (OptimisticLockingFailureException | OptimisticLockException e) {
+                attempts++;
+                if (attempts >= MAX_RETRIES) {
+                    throw new OptimisticLockingFailureException(
+                        "Failed to update reward quantity after " + MAX_RETRIES + " attempts", e);
+                }
+                try {
+                    Thread.sleep(RETRY_DELAY * attempts);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Thread interrupted while retrying update", ie);
+                }
+            }
+        }
+        throw new OptimisticLockingFailureException("Failed to update reward quantity");
     }
 
     @Transactional
@@ -112,9 +126,9 @@ public class RewardService {
 
         GoldenHour goldenHour = goldenHourMapper.createEntity(createRequest);
         goldenHour.setReward(reward);
+        goldenHour = goldenHourRepository.save(goldenHour);
         reward.addGoldenHour(goldenHour);
-
-        return rewardMapper.toDTO(rewardRepository.save(reward));
+        return rewardMapper.toDTO(reward);
     }
 
     @Transactional
@@ -131,22 +145,40 @@ public class RewardService {
 
     @Transactional
     public Optional<Reward> decrementRemainingQuantity(Long id) {
-        try {
-            return rewardRepository.findById(id)
-                    .map(reward -> {
-                        if (reward.getRemainingQuantity() > 0) {
-                            reward.decrementRemainingQuantity();
-                            return rewardRepository.save(reward);
-                        }
-                        return null;
-                    });
-        } catch (OptimisticLockException e) {
-            return Optional.empty();
+        int attempts = 0;
+        while (attempts < MAX_RETRIES) {
+            try {
+                Optional<Reward> rewardOpt = rewardRepository.findById(id);
+                if (rewardOpt.isEmpty()) {
+                    return Optional.empty();
+                }
+
+                Reward reward = rewardOpt.get();
+                if (reward.getRemainingQuantity() <= 0) {
+                    return Optional.empty();
+                }
+
+                reward.decrementRemainingQuantity();
+                return Optional.of(rewardRepository.save(reward));
+
+            } catch (OptimisticLockingFailureException | OptimisticLockException e) {
+                attempts++;
+                if (attempts >= MAX_RETRIES) {
+                    return Optional.empty();
+                }
+                try {
+                    Thread.sleep(RETRY_DELAY * (long) attempts);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Thread interrupted while retrying decrement", ie);
+                }
+            }
         }
+        return Optional.empty();
     }
 
     @Transactional(readOnly = true)
     public boolean isRewardAvailable(Reward reward, LocalDateTime dateTime, String province) {
-        return reward.isAvailable(dateTime, province);
+        return reward != null && reward.isAvailable(dateTime, province);
     }
 }

@@ -12,7 +12,7 @@ public class EventMapper {
         }
 
         return EventDTO.builder()
-                .id(event.getId())
+                .id(event.getId() != null ? event.getId() : 0L)
                 .code(event.getCode())
                 .name(event.getName())
                 .description(event.getDescription())
@@ -23,6 +23,8 @@ public class EventMapper {
                 .updatedAt(event.getUpdatedAt())
                 .participantCount(event.getParticipants().size())
                 .rewardCount(event.getRewards().size())
+                .createdAt(event.getCreatedAt())
+                .updatedAt(event.getUpdatedAt())
                 .build();
     }
 

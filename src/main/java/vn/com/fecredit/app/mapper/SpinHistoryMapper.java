@@ -2,6 +2,8 @@ package vn.com.fecredit.app.mapper;
 
 import org.springframework.stereotype.Component;
 import vn.com.fecredit.app.dto.SpinHistoryDTO;
+import vn.com.fecredit.app.dto.SimpleParticipantDTO;
+import vn.com.fecredit.app.dto.SimpleRewardDTO;
 import vn.com.fecredit.app.model.SpinHistory;
 
 @Component
@@ -14,13 +16,20 @@ public class SpinHistoryMapper {
 
         return SpinHistoryDTO.builder()
                 .id(spinHistory.getId())
-                .participantId(spinHistory.getParticipant().getId())
-                .participantName(spinHistory.getParticipant().getName())
-                .rewardId(spinHistory.getReward() != null ? spinHistory.getReward().getId() : null)
-                .rewardName(spinHistory.getReward() != null ? spinHistory.getReward().getName() : null)
+                .participant(SimpleParticipantDTO.builder()
+                        .id(spinHistory.getParticipant().getId())
+                        .fullName(spinHistory.getParticipant().getFullName())
+                        .build())
+                .reward(spinHistory.getReward() != null ? 
+                        SimpleRewardDTO.builder()
+                        .id(spinHistory.getReward().getId())
+                        .name(spinHistory.getReward().getName())
+                        .build() : null)
                 .spinTime(spinHistory.getSpinTime())
                 .remainingSpins(spinHistory.getRemainingSpins())
                 .currentMultiplier(spinHistory.getCurrentMultiplier())
+                .isGoldenHour(spinHistory.getIsGoldenHour())
+                .won(spinHistory.getWon())
                 .build();
     }
 }

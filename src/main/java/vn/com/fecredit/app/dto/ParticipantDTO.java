@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Builder.Default;
 
 import java.time.LocalDateTime;
 
@@ -19,9 +20,13 @@ public class ParticipantDTO {
     private String fullName;
     private String phoneNumber;
     private String province;
-    private Integer dailySpinLimit;
+    private Long dailySpinLimit;
+    private Long spinsRemaining;
     private Boolean isActive;
     private Long eventId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    @Default
+    private Boolean isEligibleForSpin = true;
 }

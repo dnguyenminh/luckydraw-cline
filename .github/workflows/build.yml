@@ -3,24 +3,67 @@ on: [push]
 jobs:  
   build:  
     runs-on: ubuntu-latest  
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:  
       - uses: actions/checkout@v2  
+      
       - name: Set up JDK 17  
         uses: actions/setup-java@v2  
-        with:  
-          java-version: '17'  
-          distribution: 'temurin'  
-      - name: Create archive directory  
-        run: mkdir -p archive  
-      - name: Zip source code  
-        run: |  
-          zip -r archive/source.zip . -x "*.git*" "archive/*"  
-      - name: Grant execute permission for gradlew (again)  
-        run: chmod +x gradlew  
-      - name: Build with Gradle  
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client netcat
+
+      - name: Wait for PostgreSQL
+        run: |
+          while ! nc -z localhost 5432; do
+            echo "Waiting for PostgreSQL to start..."
+            sleep 1
+          done
+
+      - name: Create test database
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS test_lucky_draw;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE test_lucky_draw;"
+
+      - name: Create archive directory
+        run: mkdir -p archive
+
+      - name: Zip source code
+        run: |
+          zip -r archive/source.zip . -x "*.git*" "archive/*"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/test_lucky_draw
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
         run: ./gradlew build --stacktrace
-      - name: Upload archive as artifact  
-        uses: actions/upload-artifact@v4  
-        with:  
-          name: source-archive  
+
+      - name: Upload archive as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-archive
           path: archive

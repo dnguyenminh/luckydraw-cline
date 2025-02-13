@@ -1,12 +1,11 @@
 package vn.com.fecredit.app.mapper;
 
-import org.springframework.stereotype.Component;
-import vn.com.fecredit.app.dto.GoldenHourDTO;
-import vn.com.fecredit.app.dto.RewardDTO;
-import vn.com.fecredit.app.model.GoldenHour;
-import vn.com.fecredit.app.model.Reward;
-
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
+import vn.com.fecredit.app.dto.RewardDTO;
+import vn.com.fecredit.app.model.Reward;
 
 @Component
 public class RewardMapper {
@@ -34,9 +33,9 @@ public class RewardMapper {
                 .endDate(reward.getEndDate())
                 .isActive(reward.getIsActive())
                 .eventId(reward.getEvent() != null ? reward.getEvent().getId() : null)
-                .goldenHours(reward.getGoldenHours().stream()
+                .goldenHours(reward.getGoldenHours() != null ? reward.getGoldenHours().stream()
                         .map(goldenHourMapper::toDTO)
-                        .collect(Collectors.toList()))
+                        .collect(Collectors.toList()) : null)
                 .build();
     }
 

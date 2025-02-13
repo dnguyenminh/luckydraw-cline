@@ -1,22 +1,27 @@
 package vn.com.fecredit.app.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.Builder.Default;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
-@Data
 @Entity
+@Table(name = "rewards")
+@EntityListeners(AuditingEntityListener.class)
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "rewards")
 public class Reward {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,13 +34,12 @@ public class Reward {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(name = "remaining_quantity")
+    @Column(name = "remaining_quantity", nullable = false)
     private Integer remainingQuantity;
 
     @Column(name = "max_quantity_in_period")
     private Integer maxQuantityInPeriod;
 
-    @Column(name = "probability")
     private Double probability;
 
     @Column(name = "applicable_provinces", length = 1000)
@@ -47,25 +51,23 @@ public class Reward {
     @Column(name = "end_date")
     private LocalDateTime endDate;
 
-    @Column(name = "is_active")
+    @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @OneToMany(mappedBy = "reward", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<GoldenHour> goldenHours = new ArrayList<>();
-
     @OneToMany(mappedBy = "reward", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<SpinHistory> spinHistories = new ArrayList<>();
+    @Default
+    private Set<GoldenHour> goldenHours = new HashSet<>();
 
-    @Column(name = "created_at")
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @Version
@@ -73,76 +75,71 @@ public class Reward {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-        if (remainingQuantity == null) {
-            remainingQuantity = quantity;
+        if (this.isActive == null) {
+            this.isActive = true;
         }
-        if (isActive == null) {
-            isActive = true;
+        if (this.remainingQuantity == null) {
+            this.remainingQuantity = this.quantity;
         }
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
-    public void addGoldenHour(GoldenHour goldenHour) {
-        goldenHours.add(goldenHour);
-        goldenHour.setReward(this);
-    }
-
-    public void removeGoldenHour(GoldenHour goldenHour) {
-        goldenHours.remove(goldenHour);
-        goldenHour.setReward(null);
-    }
-
-    public void setEvent(Event event) {
-        this.event = event;
-    }
-
-    public Event getEvent() {
-        return event;
-    }
-
-    public int getRemainingQuantity() {
-        return remainingQuantity != null ? remainingQuantity : 0;
-    }
-
-    public void decrementRemainingQuantity() {
-        if (remainingQuantity != null && remainingQuantity > 0) {
-            remainingQuantity--;
-        }
-    }
-
-    public boolean isAvailable(LocalDateTime time, String province) {
-        if (!isActive || remainingQuantity <= 0) {
+    public boolean isAvailable(LocalDateTime dateTime, String province) {
+        if (!Boolean.TRUE.equals(isActive)) {
             return false;
         }
 
-        if (startDate != null && time.isBefore(startDate)) {
+        if (remainingQuantity <= 0) {
             return false;
         }
 
-        if (endDate != null && time.isAfter(endDate)) {
+        if (startDate != null && dateTime.isBefore(startDate)) {
             return false;
         }
 
-        if (applicableProvinces != null && !applicableProvinces.isEmpty() &&
-                !applicableProvinces.contains(province)) {
+        if (endDate != null && dateTime.isAfter(endDate)) {
             return false;
         }
 
-        if (goldenHours != null && !goldenHours.isEmpty()) {
-            return goldenHours.stream()
-                    .anyMatch(gh -> gh.isActive() && gh.isWithinTimeRange(time));
+        if (applicableProvinces != null && !applicableProvinces.isEmpty() && province != null) {
+            Set<String> provinces = new HashSet<>(Arrays.asList(applicableProvinces.split(",")));
+            if (!provinces.contains(province.trim())) {
+                return false;
+            }
         }
 
         return true;
     }
 
-    public double getProbability() {
-        return probability != null ? probability : 0.0;
+    public void decrementRemainingQuantity() {
+        if (this.remainingQuantity > 0) {
+            this.remainingQuantity--;
+        }
+    }
+
+    public void addGoldenHour(GoldenHour goldenHour) {
+        goldenHours.add(goldenHour);
+        if (goldenHour.getReward() != this) {
+            goldenHour.setReward(this);
+        }
+    }
+
+    public void removeGoldenHour(GoldenHour goldenHour) {
+        goldenHours.remove(goldenHour);
+        if (goldenHour.getReward() == this) {
+            goldenHour.setReward(null);
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Reward)) return false;
+        Reward reward = (Reward) o;
+        return id != null && id.equals(reward.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

@@ -5,9 +5,6 @@ import vn.com.fecredit.app.dto.GoldenHourDTO;
 import vn.com.fecredit.app.model.GoldenHour;
 import vn.com.fecredit.app.model.Reward;
 
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-
 @Component
 public class GoldenHourMapper {
 
@@ -19,8 +16,8 @@ public class GoldenHourMapper {
         return GoldenHourDTO.builder()
                 .id(goldenHour.getId())
                 .name(goldenHour.getName())
-                .startTime(LocalDateTime.of(LocalDateTime.now().toLocalDate(), goldenHour.getStartTime()))
-                .endTime(LocalDateTime.of(LocalDateTime.now().toLocalDate(), goldenHour.getEndTime()))
+                .startTime(goldenHour.getStartTime())
+                .endTime(goldenHour.getEndTime())
                 .multiplier(goldenHour.getMultiplier())
                 .isActive(goldenHour.getIsActive())
                 .rewardId(goldenHour.getReward() != null ? goldenHour.getReward().getId() : null)
@@ -35,8 +32,8 @@ public class GoldenHourMapper {
         return GoldenHour.builder()
                 .id(dto.getId())
                 .name(dto.getName())
-                .startTime(dto.getStartTime().toLocalTime())
-                .endTime(dto.getEndTime().toLocalTime())
+                .startTime(dto.getStartTime())
+                .endTime(dto.getEndTime())
                 .multiplier(dto.getMultiplier())
                 .isActive(dto.getIsActive())
                 .build();
@@ -49,8 +46,8 @@ public class GoldenHourMapper {
 
         return GoldenHour.builder()
                 .name(request.getName())
-                .startTime(request.getStartTime().toLocalTime())
-                .endTime(request.getEndTime().toLocalTime())
+                .startTime(request.getStartTime())
+                .endTime(request.getEndTime())
                 .multiplier(request.getMultiplier())
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .build();
@@ -65,10 +62,10 @@ public class GoldenHourMapper {
             entity.setName(request.getName());
         }
         if (request.getStartTime() != null) {
-            entity.setStartTime(request.getStartTime().toLocalTime());
+            entity.setStartTime(request.getStartTime());
         }
         if (request.getEndTime() != null) {
-            entity.setEndTime(request.getEndTime().toLocalTime());
+            entity.setEndTime(request.getEndTime());
         }
         if (request.getMultiplier() != null) {
             entity.setMultiplier(request.getMultiplier());

@@ -26,7 +26,7 @@ public class UpdateParticipantRequest {
 
     @NotNull
     @Min(1)
-    private Integer dailySpinLimit;
+    private Long dailySpinLimit;
 
     @NotNull
     private Boolean isActive;

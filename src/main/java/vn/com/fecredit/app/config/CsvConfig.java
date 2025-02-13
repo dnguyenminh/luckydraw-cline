@@ -1,10 +1,9 @@
 package vn.com.fecredit.app.config;
 
-import com.opencsv.CSVParserBuilder;
-import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.opencsv.CSVParserBuilder;
 
 @Configuration
 public class CsvConfig {

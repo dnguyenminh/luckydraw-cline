@@ -12,6 +12,7 @@ import vn.com.fecredit.app.repository.GoldenHourRepository;
 import vn.com.fecredit.app.repository.RewardRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -23,26 +24,25 @@ public class GoldenHourService {
     private final GoldenHourMapper goldenHourMapper;
 
     @Transactional(readOnly = true)
-    public Long getActiveGoldenHourId(LocalDateTime dateTime) {
-        Optional<GoldenHour> activeGoldenHour = goldenHourRepository.findActiveGoldenHour(dateTime);
-        return activeGoldenHour.map(GoldenHour::getId).orElse(null);
+    public Optional<GoldenHour> findActiveGoldenHour(Long eventId, LocalDateTime currentTime) {
+        return goldenHourRepository.findActiveGoldenHour(eventId, currentTime);
     }
 
     @Transactional(readOnly = true)
-    public Double getGoldenHourMultiplier(Long goldenHourId, LocalDateTime dateTime) {
+    public Double getGoldenHourMultiplier(Long eventId, Long goldenHourId, LocalDateTime dateTime) {
         if (goldenHourId == null) {
-            return 1.0;
+            // When no specific golden hour is requested, find any active one
+            return goldenHourRepository.findActiveGoldenHour(eventId, dateTime)
+                    .map(GoldenHour::getMultiplier)
+                    .orElse(1.0);
         }
 
+        // When a specific golden hour is requested, check if it's active and within time range
         return goldenHourRepository.findById(goldenHourId)
-                .filter(gh -> Boolean.TRUE.equals(gh.getIsActive()) && gh.isWithinTimeRange(dateTime))
+                .filter(GoldenHour::isActive)
+                .filter(gh -> gh.isWithinTimeRange(dateTime))
                 .map(GoldenHour::getMultiplier)
                 .orElse(1.0);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<GoldenHour> getActiveGoldenHour(LocalDateTime dateTime) {
-        return goldenHourRepository.findActiveGoldenHour(dateTime);
     }
 
     @Transactional
@@ -70,8 +70,8 @@ public class GoldenHourService {
 
     @Transactional(readOnly = true)
     public GoldenHour findByRewardIdAndIsActiveTrue(Long rewardId) {
-        return goldenHourRepository.findByRewardIdAndIsActiveTrue(rewardId)
-                .orElse(null);
+        List<GoldenHour> activeHours = goldenHourRepository.findByRewardIdAndIsActiveTrue(rewardId);
+        return activeHours.isEmpty() ? null : activeHours.get(0);
     }
 
     @Transactional
@@ -80,6 +80,7 @@ public class GoldenHourService {
                 .orElseThrow(() -> new ResourceNotFoundException("GoldenHour", "id", id));
         goldenHour.setIsActive(false);
         goldenHourRepository.save(goldenHour);
+        goldenHourRepository.flush();
     }
 
     @Transactional

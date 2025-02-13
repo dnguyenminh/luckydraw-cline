@@ -26,6 +26,7 @@ public class ParticipantService {
 
     @Transactional(readOnly = true)
     public Page<ParticipantDTO> getAllParticipants(String search, Pageable pageable) {
+        // The search is case-insensitive
         Specification<Participant> specification = (root, query, builder) -> {
             if (search == null || search.trim().isEmpty()) {
                 return null;
@@ -54,6 +55,7 @@ public class ParticipantService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
 
         Participant participant = Participant.builder()
+                .name(request.getFullName()) // Set the name field to fullName
                 .customerId(request.getCustomerId())
                 .cardNumber(request.getCardNumber())
                 .email(request.getEmail())
@@ -61,7 +63,10 @@ public class ParticipantService {
                 .phoneNumber(request.getPhoneNumber())
                 .province(request.getProvince())
                 .dailySpinLimit(request.getDailySpinLimit())
+                .spinsRemaining(request.getDailySpinLimit()) // Initialize spinsRemaining
                 .event(event)
+                .employeeId(request.getCustomerId()) // Assuming employeeId should be set to customerId
+                .isActive(true) // Initialize isActive
                 .build();
 
         return participantMapper.toDTO(participantRepository.save(participant));

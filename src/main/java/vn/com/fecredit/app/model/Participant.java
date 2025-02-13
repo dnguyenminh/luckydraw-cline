@@ -1,14 +1,11 @@
 package vn.com.fecredit.app.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Entity
@@ -24,7 +21,7 @@ public class Participant {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", nullable = false)
     private String fullName;
 
     @Column(name = "customer_id")
@@ -52,21 +49,25 @@ public class Participant {
     private String position;
 
     @Column(name = "spins_remaining")
-    private Integer spinsRemaining;
+    private Long spinsRemaining;
 
     @Column(name = "daily_spin_limit")
-    private Integer dailySpinLimit;
+    private Long dailySpinLimit;
 
     @Column(name = "is_active")
     private Boolean isActive;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Event event;
 
     @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL)
     @Builder.Default
-    private List<SpinHistory> spinHistories = new ArrayList<>();
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Set<SpinHistory> spinHistories = new HashSet<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -82,10 +83,10 @@ public class Participant {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         if (this.spinsRemaining == null) {
-            this.spinsRemaining = 0;
+            this.spinsRemaining = 0L;
         }
         if (this.dailySpinLimit == null) {
-            this.dailySpinLimit = 0;
+            this.dailySpinLimit = 0L;
         }
         if (this.isActive == null) {
             this.isActive = true;
@@ -116,17 +117,17 @@ public class Participant {
     }
 
     public void decrementSpinsRemaining() {
-        if (this.spinsRemaining > 0) {
-            this.spinsRemaining--;
+        if (this.spinsRemaining != null && this.spinsRemaining > 0) {
+            this.spinsRemaining = this.spinsRemaining - 1L;
         }
     }
 
-    public int getSpinsRemaining() {
-        return spinsRemaining != null ? spinsRemaining : 0;
+    public Long getSpinsRemaining() {
+        return spinsRemaining != null ? spinsRemaining : 0L;
     }
 
-    public int getDailySpinLimit() {
-        return dailySpinLimit != null ? dailySpinLimit : 0;
+    public Long getDailySpinLimit() {
+        return dailySpinLimit != null ? dailySpinLimit : 0L;
     }
 
     public String getCustomerId() {

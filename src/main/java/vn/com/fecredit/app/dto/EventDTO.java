@@ -1,13 +1,15 @@
 package vn.com.fecredit.app.dto;
 
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -32,6 +34,7 @@ public class EventDTO {
     @AllArgsConstructor
     public static class CreateEventRequest {
         @NotBlank(message = "Code is required")
+        @Pattern(regexp = "^\\S+$", message = "Code must not contain spaces")
         private String code;
 
         @NotBlank(message = "Name is required")

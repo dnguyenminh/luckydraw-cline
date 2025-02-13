@@ -1,8 +1,8 @@
 package vn.com.fecredit.app.model;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 public class RewardBuilder {
     private Long id;
@@ -17,7 +17,7 @@ public class RewardBuilder {
     private LocalDateTime endDate;
     private Boolean isActive;
     private Event event;
-    private List<GoldenHour> goldenHours = new ArrayList<>();
+    private Set<GoldenHour> goldenHours = new HashSet<>();
 
     public RewardBuilder id(Long id) {
         this.id = id;
@@ -75,7 +75,7 @@ public class RewardBuilder {
         return this;
     }
 
-    public RewardBuilder goldenHours(List<GoldenHour> goldenHours) {
+    public RewardBuilder goldenHours(Set<GoldenHour> goldenHours) {
         this.goldenHours = goldenHours;
         return this;
     }

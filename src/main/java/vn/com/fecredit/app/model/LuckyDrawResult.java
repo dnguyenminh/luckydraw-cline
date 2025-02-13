@@ -1,19 +1,20 @@
 package vn.com.fecredit.app.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 import java.time.LocalDateTime;
 
-@Data
 @Entity
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "lucky_draw_results")
+@Table(name = "lucky_draw_results", 
+      indexes = {
+          @Index(name = "idx_lucky_draw_reward_pack", columnList = "reward_id,pack_number"),
+          @Index(name = "idx_lucky_draw_win_time", columnList = "win_time")
+      })
 public class LuckyDrawResult {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,6 +35,9 @@ public class LuckyDrawResult {
     @Column(name = "win_time", nullable = false)
     private LocalDateTime winTime;
 
+    @Column(name = "pack_number", nullable = false)
+    private Integer packNumber;
+
     @Column(name = "is_claimed")
     private Boolean isClaimed;
 
@@ -50,9 +54,43 @@ public class LuckyDrawResult {
     private Long version;
 
     public void claim(String claimedBy, String notes) {
+        if (Boolean.TRUE.equals(this.isClaimed)) {
+            throw new IllegalStateException("Result already claimed");
+        }
         this.isClaimed = true;
         this.claimedAt = LocalDateTime.now();
         this.claimedBy = claimedBy;
         this.claimNotes = notes;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.isClaimed == null) {
+            this.isClaimed = false;
+        }
+        if (this.winTime == null) {
+            this.winTime = LocalDateTime.now();
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof LuckyDrawResult)) return false;
+        LuckyDrawResult that = (LuckyDrawResult) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "LuckyDrawResult(id=" + id +
+               ", packNumber=" + packNumber +
+               ", winTime=" + winTime +
+               ", isClaimed=" + isClaimed + ")";
     }
 }

@@ -15,6 +15,9 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
+    all {
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
 }
 
 repositories {
@@ -23,23 +26,19 @@ repositories {
 
 dependencies {
     // Spring Boot Starters
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation ('org.springframework.boot:spring-boot-starter-data-jpa') {
+        exclude group: 'org.apache.tomcat', module: 'tomcat-jdbc'
+    }
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    // embedded postgress
-    implementation 'com.opentable.components:otj-pg-embedded:1.0.1'
 
     // Database
-//    def env = project.hasProperty('env') ? project.env : 'prod'
-//    if ('dev' == env) {
-//        runtimeOnly 'com.h2database:h2'
-//    } else {
-//        runtimeOnly 'org.postgresql:postgresql'
-//    }
-    runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
+    
+    // Connection Pool
+    implementation 'com.zaxxer:HikariCP'
 
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
@@ -60,15 +59,27 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
 
     // Test Dependencies
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'com.vaadin.external.google', module: 'android-json'
+    }
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.mockito:mockito-junit-jupiter'
-    // testImplementation("com.opentable.components:otj-pg-embedded:1.0.1")
+    
+    // Testcontainers
+    testImplementation platform('org.testcontainers:testcontainers-bom:1.19.3')
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
 }
 
 test {
     useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat = 'full'
+        showStandardStreams = true
+    }
 }

@@ -70,7 +70,7 @@ public class FileImportService {
                             .fullName(fullName)
                             .phoneNumber(phoneNumber)
                             .province(province)
-                            .dailySpinLimit(3) // Default value
+                            .dailySpinLimit(3L) // Default value
                             .event(event)
                             .isActive(true)
                             .build();
