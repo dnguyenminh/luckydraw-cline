@@ -61,19 +61,23 @@ class UserRepositoryTest {
                 .password("password")
                 .enabled(true)
                 .roles(Set.of(adminRole, userRole))
-                .createdDate(now)
-                .lastModifiedDate(now)
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("system")
+                .lastModifiedBy("system")
                 .build();
         activeUser = userRepository.save(activeUser);
 
         inactiveUser = User.builder()
                 .username("inactive.user")
-                .email("inactive@other.com") // updated email
+                .email("inactive@other.com")
                 .password("password")
                 .enabled(false)
                 .roles(Set.of(userRole))
-                .createdDate(now)
-                .lastModifiedDate(now)
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("system")
+                .lastModifiedBy("system")
                 .build();
         inactiveUser = userRepository.save(inactiveUser);
     }
@@ -120,7 +124,6 @@ class UserRepositoryTest {
     @Test
     void updateEnabled_ShouldUpdateUserStatus() {
         int updated = userRepository.updateEnabled(activeUser.getId(), false);
-        // Remove explicit commit calls to let the transaction rollback naturally
         Optional<User> found = userRepository.findById(activeUser.getId());
         assertThat(updated).isEqualTo(1);
         assertThat(found).isPresent();

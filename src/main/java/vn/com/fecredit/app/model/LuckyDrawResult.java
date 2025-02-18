@@ -21,6 +21,10 @@ public class LuckyDrawResult {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false)
+    private Event event;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "participant_id", nullable = false)
     private Participant participant;
 

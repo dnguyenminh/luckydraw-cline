@@ -1,0 +1,12 @@
+-- Drop all tables
+DROP TABLE IF EXISTS user_roles CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+DROP TABLE IF EXISTS rewards CASCADE;
+DROP TABLE IF EXISTS events CASCADE;
+DROP TABLE IF EXISTS participants CASCADE;
+DROP TABLE IF EXISTS spin_history CASCADE;
+DROP TABLE IF EXISTS reward_history CASCADE;
+
+-- Drop Flyway schema history
+DROP TABLE IF EXISTS flyway_schema_history CASCADE;

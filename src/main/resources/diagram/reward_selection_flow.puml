@@ -1,0 +1,60 @@
+@startuml Reward Selection Flow
+
+skinparam sequence {
+    ParticipantBackgroundColor white
+    ParticipantBorderColor #666666
+    ArrowColor #666666
+}
+
+actor User
+participant "API Controller" as API
+participant "RewardSelectionService" as RSS
+participant "EventService" as ES
+participant "RewardService" as RS
+participant "GoldenHourService" as GHS
+participant "LuckyDrawResultService" as LDS
+
+User -> API: Spin request
+activate API
+
+API -> ES: Find active event
+activate ES
+ES --> API: event
+deactivate ES
+
+API -> RS: Get available rewards
+activate RS
+RS --> API: rewards list
+deactivate RS
+
+API -> GHS: Check golden hour
+activate GHS
+GHS --> API: Optional<GoldenHour>
+deactivate GHS
+
+API -> RSS: selectReward(event, rewards, spins, goldenHour, location)
+activate RSS
+
+RSS -> RSS: Filter rewards by location
+RSS -> RSS: Calculate total rewards
+RSS -> RSS: Perform reservoir sampling
+RSS -> RSS: Assign positions to rewards
+RSS -> RSS: Generate spin position
+RSS -> RSS: Check for win
+
+alt Reward Won
+    RSS --> API: Optional<Reward>
+    API -> LDS: recordSpin(user, event, reward)
+    activate LDS
+    LDS --> API: result
+    deactivate LDS
+else No Win
+    RSS --> API: Optional.empty()
+end
+
+API --> User: Spin result
+
+deactivate RSS
+deactivate API
+
+@enduml

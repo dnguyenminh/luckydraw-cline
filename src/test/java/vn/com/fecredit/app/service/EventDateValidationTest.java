@@ -170,7 +170,7 @@ class EventDateValidationTest {
     @DisplayName("Should handle events spanning midnight")
     void shouldHandleEventsSpanningMidnight() {
         // Given
-        LocalDateTime startDate = now.withHour(22).withMinute(0); // 10 PM
+        LocalDateTime startDate = now.plusMinutes(5); // 10 PM
         LocalDateTime endDate = now.plusDays(1).withHour(2).withMinute(0); // 2 AM next day
         
         EventDTO.CreateEventRequest request = EventDTO.CreateEventRequest.builder()

@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.2'
     id 'io.spring.dependency-management' version '1.1.4'
+    id 'org.flywaydb.flyway' version '9.16.0'
 }
 
 group = 'vn.com.fecredit'
@@ -34,7 +35,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
     // Database
-    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
     
     // Connection Pool
@@ -72,7 +73,6 @@ dependencies {
     // Testcontainers
     testImplementation platform('org.testcontainers:testcontainers-bom:1.19.3')
     testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:postgresql'
 }
 
 test {
@@ -82,4 +82,18 @@ test {
         exceptionFormat = 'full'
         showStandardStreams = true
     }
+}
+
+flyway {
+    // Replace the URL, user, and password with your database connection details.
+
+    def profile = System.getProperty('spring.profiles.active') ?: 'unknown'
+    def dbName = "${profile}_lucky_draw"
+    url="jdbc:postgresql://localhost:5432/${dbName}"
+    user = 'postgres'
+    password='postgres'
+    schemas = ['public']
+    def cleanDisabledProp = project.findProperty('flyway.cleanDisabled') ?: 'false'
+    cleanDisabled = cleanDisabledProp.toBoolean()
+    baselineOnMigrate = true
 }

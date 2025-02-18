@@ -2,7 +2,8 @@ package vn.com.fecredit.app.config;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -13,9 +14,15 @@ import javax.sql.DataSource;
 import jakarta.persistence.EntityManagerFactory;
 
 @TestConfiguration
-@EnableJpaAuditing
 @EnableTransactionManagement
 @EnableJpaRepositories(basePackages = "vn.com.fecredit.app.repository")
+@ComponentScan(
+    basePackages = "vn.com.fecredit.app.repository",
+    excludeFilters = @ComponentScan.Filter(
+        type = FilterType.REGEX,
+        pattern = "vn\\.com\\.fecredit\\.app\\.service\\..*"
+    )
+)
 public class TestConfig {
 
     @Bean

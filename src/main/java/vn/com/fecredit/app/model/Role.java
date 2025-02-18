@@ -2,7 +2,13 @@ package vn.com.fecredit.app.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,6 +19,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class Role {
 
     @Id
@@ -21,6 +28,29 @@ public class Role {
 
     @Column(name = "name", length = 50, unique = true, nullable = false)
     private String name;
+
+    @Column(name = "description")
+    private String description;
+
+    @CreatedDate
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @CreatedBy
+    @Column(name = "created_by")
+    private String createdBy;
+
+    @LastModifiedBy
+    @Column(name = "last_modified_by")
+    private String lastModifiedBy;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     @ManyToMany(mappedBy = "roles")
     @Builder.Default

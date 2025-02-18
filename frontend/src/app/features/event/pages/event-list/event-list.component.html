@@ -1,0 +1,56 @@
+<app-page-header 
+  title="Events"
+  subtitle="Join and participate in lucky draw events">
+</app-page-header>
+
+<div class="container mt-4">
+  <div class="row mb-3">
+    <div class="col">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" 
+          [(ngModel)]="filterActive"
+          (ngModelChange)="onFilterChange($event)">
+        <label class="form-check-label">Show active events only</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover" *ngIf="!loading && events.length > 0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Participants</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let event of events" [routerLink]="['/events', event.id]">
+          <td>{{ event.name }}</td>
+          <td><span class="badge bg-{{ event.status | lowercase }}">{{ event.status }}</span></td>
+          <td>{{ event.startDate | date:'short' }}</td>
+          <td>{{ event.endDate | date:'short' }}</td>
+          <td>{{ event.currentParticipants }}/{{ event.maxParticipants || '∞' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mt-3" *ngIf="!loading && events.length > 0">
+    <ngb-pagination
+      [collectionSize]="totalEvents"
+      [(page)]="page"
+      [pageSize]="pageSize"
+      (pageChange)="onPageChange($event)">
+    </ngb-pagination>
+  </div>
+
+  <app-empty-state *ngIf="!loading && events.length === 0"
+    [message]="filterActive ? 'No active events found.' : 'No events found.'"
+    [icon]="'bi bi-calendar-x'">
+  </app-empty-state>
+
+  <app-loading-spinner *ngIf="loading"></app-loading-spinner>
+</div>

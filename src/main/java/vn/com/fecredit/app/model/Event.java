@@ -80,6 +80,7 @@ private Set<Reward> rewards = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
         if (this.isActive == null) {
             this.isActive = true;
         }
@@ -88,6 +89,12 @@ private Set<Reward> rewards = new HashSet<>();
         }
         if (this.remainingSpins == null) {
             this.remainingSpins = this.totalSpins;
+        }
+        if (this.startDate == null) {
+            this.startDate = now;
+        }
+        if (this.endDate == null) {
+            this.endDate = now.plusDays(7);
         }
     }
 

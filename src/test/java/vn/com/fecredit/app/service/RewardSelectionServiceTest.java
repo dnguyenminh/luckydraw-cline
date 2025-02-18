@@ -201,4 +201,30 @@ class RewardSelectionServiceTest {
             () -> winCounts.get("No Win").incrementAndGet()
         );
     }
+
+    @Test
+    void shouldHandleMoreRewardsThanSpins() {
+        rewards = Arrays.asList(
+            createReward(1L, "Reward 1", 20),  // More rewards than total spins
+            createReward(2L, "Reward 2", 30)
+        );
+
+        int totalSpins = 10;
+        Map<String, AtomicInteger> winCounts = new HashMap<>();
+        winCounts.put("Reward 1", new AtomicInteger(0));
+        winCounts.put("Reward 2", new AtomicInteger(0));
+        winCounts.put("No Win", new AtomicInteger(0));
+
+        for (int i = 0; i < totalSpins; i++) {
+            Optional<Reward> result = rewardSelectionService.selectReward(
+                event, rewards, totalSpins - i, Optional.empty(), "Location1"
+            );
+            trackResult(result, winCounts);
+        }
+
+        int totalWins = winCounts.get("Reward 1").get() + winCounts.get("Reward 2").get();
+        assertThat(totalWins)
+            .as("Should not give out more rewards than spins even with excess supply")
+            .isLessThanOrEqualTo(totalSpins);
+    }
 }

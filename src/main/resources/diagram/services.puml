@@ -1,0 +1,79 @@
+@startuml Luckydraw Services
+
+' Style settings
+skinparam class {
+    BackgroundColor white
+    ArrowColor #666666
+    BorderColor #666666
+}
+
+' Services and Components
+class RewardSelectionService {
+    -Random random
+    +Optional<Reward> selectReward(Event, List<Reward>, long, Optional<GoldenHour>, String)
+    -Optional<Reward> selectRandomReward(List<Reward>, long, Optional<GoldenHour>, String)
+    -boolean isLocationAllowed(Reward, String)
+}
+
+class EventService {
+    -EventRepository eventRepository
+    +Event findActive()
+    +Event createEvent(Event)
+    +Event updateEvent(Event)
+    +void validateEventDates(Event)
+}
+
+class RewardService {
+    -RewardRepository rewardRepository
+    +List<Reward> findByEventAndLocation(Event, String)
+    +Reward createReward(Reward)
+    +void updateQuantity(Long, int)
+    +void validateReward(Reward)
+}
+
+class LuckyDrawResultService {
+    -LuckyDrawResultRepository resultRepository
+    +LuckyDrawResult recordSpin(User, Event, Reward)
+    +List<LuckyDrawResult> findByUser(User)
+    +List<LuckyDrawResult> findByEvent(Event)
+}
+
+class GoldenHourService {
+    -GoldenHourRepository goldenHourRepository
+    +Optional<GoldenHour> findActive(Event, LocalDateTime)
+    +GoldenHour createGoldenHour(GoldenHour)
+    +void validateGoldenHour(GoldenHour)
+}
+
+interface EventRepository {
+    +Optional<Event> findActive()
+    +Event save(Event)
+}
+
+interface RewardRepository {
+    +List<Reward> findByEventAndLocation(Event, String)
+    +Reward save(Reward)
+}
+
+interface LuckyDrawResultRepository {
+    +LuckyDrawResult save(LuckyDrawResult)
+    +List<LuckyDrawResult> findByUser(User)
+}
+
+interface GoldenHourRepository {
+    +Optional<GoldenHour> findActive(Event, LocalDateTime)
+    +GoldenHour save(GoldenHour)
+}
+
+' Relationships
+RewardSelectionService ..> RewardService : uses
+RewardSelectionService ..> EventService : uses
+RewardSelectionService ..> LuckyDrawResultService : uses
+RewardSelectionService ..> GoldenHourService : uses
+
+EventService --> EventRepository : uses
+RewardService --> RewardRepository : uses
+LuckyDrawResultService --> LuckyDrawResultRepository : uses
+GoldenHourService --> GoldenHourRepository : uses
+
+@enduml

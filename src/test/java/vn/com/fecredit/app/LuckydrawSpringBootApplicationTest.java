@@ -2,12 +2,12 @@ package vn.com.fecredit.app;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
 import vn.com.fecredit.app.config.TestConfig;
 
 @SpringBootTest
-@ContextConfiguration(classes = {TestConfig.class})
+@Import(TestConfig.class)
 @ActiveProfiles("test")
 class LuckydrawSpringBootApplicationTest {
 

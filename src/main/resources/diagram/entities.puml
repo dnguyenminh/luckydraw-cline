@@ -1,0 +1,89 @@
+@startuml Luckydraw Entities
+
+' Style settings
+skinparam class {
+    BackgroundColor white
+    ArrowColor #666666
+    BorderColor #666666
+}
+
+' Entities
+class User {
+    -Long id
+    -String username
+    -String password
+    -String email
+    -String fullName
+    -String phone
+    -String location
+    -boolean isActive
+    -boolean isEnabled
+    -LocalDateTime createdAt
+    -LocalDateTime updatedAt
+}
+
+class Role {
+    -Long id
+    -String name 
+    -String description
+    -boolean isActive
+    -LocalDateTime createdAt 
+    -LocalDateTime updatedAt
+}
+
+class Event {
+    -Long id
+    -String code
+    -String name
+    -String description
+    -LocalDateTime startDate
+    -LocalDateTime endDate
+    -boolean isActive
+    -LocalDateTime createdAt
+    -LocalDateTime updatedAt
+}
+
+class Reward {
+    -Long id
+    -String name
+    -String description
+    -String location
+    -int quantity
+    -int remainingQuantity
+    -boolean isActive
+    -Long eventId
+    -LocalDateTime createdAt
+    -LocalDateTime updatedAt
+}
+
+class LuckyDrawResult {
+    -Long id
+    -Long userId
+    -Long eventId
+    -Long rewardId
+    -LocalDateTime spinTime
+    -String location
+    -LocalDateTime createdAt
+    -LocalDateTime updatedAt
+}
+
+class GoldenHour {
+    -Long id
+    -Long eventId
+    -LocalDateTime startTime
+    -LocalDateTime endTime
+    -double multiplier
+    -boolean isActive
+    -LocalDateTime createdAt
+    -LocalDateTime updatedAt
+}
+
+' Relationships
+User "1" -- "*" Role : has >
+User "1" -- "*" LuckyDrawResult : performs >
+Event "1" -- "*" Reward : contains >
+Event "1" -- "*" GoldenHour : has >
+Event "1" -- "*" LuckyDrawResult : tracks >
+Reward "1" -- "*" LuckyDrawResult : awarded in >
+
+@enduml

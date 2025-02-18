@@ -12,10 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.transaction.TestTransaction;
-import org.springframework.transaction.annotation.Transactional;
 
+import vn.com.fecredit.app.config.TestConfig;
 import vn.com.fecredit.app.model.Event;
 import vn.com.fecredit.app.model.LuckyDrawResult;
 import vn.com.fecredit.app.model.Participant;
@@ -25,8 +26,10 @@ import vn.com.fecredit.app.model.SpinHistory;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Transactional
-class LuckyDrawResultRepositoryTest {
+@Import(TestConfig.class)
+public class LuckyDrawResultRepositoryTest {
+    
+
 
     @Autowired
     private LuckyDrawResultRepository luckyDrawResultRepository;
@@ -48,20 +51,23 @@ class LuckyDrawResultRepositoryTest {
     private Reward reward;
     private SpinHistory spinHistory;
     private LuckyDrawResult result;
-    private final LocalDateTime now = LocalDateTime.now();
+    private final LocalDateTime futureStart = LocalDateTime.now().plusDays(1);
+    private final LocalDateTime futureEnd = futureStart.plusDays(7);
 
     @BeforeEach
     void setUp() {
-        event = new Event();
-        // Generate a unique code using the current timestamp
-        event.setCode("TEST-EVENT-" + System.currentTimeMillis());
-        event.setName("Test Event");
-        event.setStartDate(now.minusDays(1));
-        event.setEndDate(now.plusDays(1));
-        event.setIsActive(true);
-        event.setCreatedAt(now);
-        event.setUpdatedAt(now);
-        event = eventRepository.save(event);
+        event = Event.builder()
+            .code("TEST-EVENT-" + System.currentTimeMillis())
+            .name("Test Event")
+            .startDate(futureStart)
+            .endDate(futureEnd)
+            .isActive(true)
+            .totalSpins(100L)
+            .remainingSpins(100L)
+            .createdAt(futureStart)
+            .updatedAt(futureStart)
+            .build();
+        event = eventRepository.saveAndFlush(event);
 
         participant = new Participant();
         participant.setEvent(event);
@@ -69,8 +75,8 @@ class LuckyDrawResultRepositoryTest {
         participant.setFullName("Test Participant");
         participant.setEmployeeId("EMP123");
         participant.setIsActive(true);
-        participant.setCreatedAt(now);
-        participant.setUpdatedAt(now);
+        participant.setCreatedAt(futureStart);
+        participant.setUpdatedAt(futureStart);
         participant = participantRepository.save(participant);
 
         reward = new Reward();
@@ -79,24 +85,25 @@ class LuckyDrawResultRepositoryTest {
         reward.setQuantity(10);
         reward.setRemainingQuantity(5);
         reward.setIsActive(true);
-        reward.setCreatedAt(now);
-        reward.setUpdatedAt(now);
+        reward.setCreatedAt(futureStart);
+        reward.setUpdatedAt(futureStart);
         reward = rewardRepository.save(reward);
 
         spinHistory = new SpinHistory();
         spinHistory.setEvent(event);
         spinHistory.setParticipant(participant);
-        spinHistory.setSpinTime(now);
+        spinHistory.setSpinTime(futureStart.plusHours(1));
         spinHistory.setWon(true);
-        spinHistory.setCreatedAt(now);
-        spinHistory.setUpdatedAt(now);
+        spinHistory.setCreatedAt(futureStart);
+        spinHistory.setUpdatedAt(futureStart);
         spinHistory = spinHistoryRepository.save(spinHistory);
 
         result = new LuckyDrawResult();
+        result.setEvent(event);
         result.setParticipant(participant);
         result.setReward(reward);
         result.setSpinHistory(spinHistory);
-        result.setWinTime(now);
+        result.setWinTime(futureStart.plusHours(1));
         result.setPackNumber(1);
         result.setIsClaimed(false);
         result = luckyDrawResultRepository.save(result);
@@ -136,8 +143,8 @@ class LuckyDrawResultRepositoryTest {
     void countUnclaimedByRewardIdAndWinTimeBetween_ShouldReturnCount() {
         long count = luckyDrawResultRepository.countUnclaimedByRewardIdAndWinTimeBetween(
             reward.getId(), 
-            now.minusHours(1),
-            now.plusHours(1)
+            futureStart,
+            futureStart.plusHours(2)
         );
 
         assertThat(count).isEqualTo(1);
