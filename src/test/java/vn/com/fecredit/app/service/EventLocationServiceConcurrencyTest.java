@@ -8,57 +8,45 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.transaction.Transactional;
 import vn.com.fecredit.app.model.Event;
-import vn.com.fecredit.app.model.Reward;
+import vn.com.fecredit.app.model.EventLocation;
+import vn.com.fecredit.app.repository.EventLocationRepository;
 import vn.com.fecredit.app.repository.EventRepository;
-import vn.com.fecredit.app.repository.RewardRepository;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class RewardConcurrencyTest {
+class EventLocationServiceConcurrencyTest {
 
     @Autowired
-    private RewardRepository rewardRepository;
+    private EventLocationService locationService;
 
     @Autowired
     private EventRepository eventRepository;
 
     @Autowired
-    private RewardService rewardService;
-
-    private Event event;
-
-    @BeforeEach
-    void setUp() {
-        event = Event.builder()
-            .code("TEST-EVENT-" + System.currentTimeMillis())
-            .name("Test Event")
-            .totalSpins(1000L)
-            .remainingSpins(1000L)
-            .isActive(true)
-            .build();
-        event = eventRepository.save(event);
-    }
+    private EventLocationRepository locationRepository;
 
     @Test
     @Transactional
-    void concurrentRewardDecrements_ShouldNotOverallocate() throws InterruptedException {
+    void concurrentAllocateSpins_ShouldNotOverallocate() throws InterruptedException {
         // Given
-        final Reward reward = rewardRepository.save(Reward.builder()
-            .event(event)
-            .name("Test Reward")
-            .quantity(100)
-            .remainingQuantity(100)
-            .probability(1.0)
-            .isActive(true)
-            .build());
+        Event event = Event.builder()
+            .code("TEST-001")
+            .name("Test Event")
+            .build();
+        event = eventRepository.save(event);
+
+        EventLocation location = locationService.createEventLocation(
+            event,
+            "Test Location",
+            100L
+        );
 
         int numThreads = 10;
         int numAttemptsPerThread = 15;
@@ -71,7 +59,8 @@ class RewardConcurrencyTest {
             executor.submit(() -> {
                 try {
                     for (int j = 0; j < numAttemptsPerThread; j++) {
-                        if (rewardService.decrementRemainingQuantity(reward.getId())) {
+                        boolean allocated = locationService.allocateSpin(location.getId());
+                        if (allocated) {
                             results.add(true);
                         }
                     }
@@ -85,8 +74,8 @@ class RewardConcurrencyTest {
         executor.shutdown();
 
         // Then
-        Reward finalReward = rewardRepository.findById(reward.getId()).orElseThrow();
-        assertThat(finalReward.getRemainingQuantity()).isEqualTo(0);
-        assertThat(results).hasSize(100); // Initial quantity
+        EventLocation finalLocation = locationRepository.findById(location.getId()).orElseThrow();
+        assertThat(finalLocation.getRemainingSpins()).isEqualTo(0L);
+        assertThat(results).hasSize(100); // Initial spins
     }
 }

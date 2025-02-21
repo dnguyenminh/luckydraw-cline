@@ -1,31 +1,44 @@
 package vn.com.fecredit.app.model;
 
-import jakarta.persistence.*;
-import lombok.*;
-import lombok.Builder.Default;
-
 import java.time.LocalDateTime;
-import java.time.LocalTime;
+
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "golden_hours")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class GoldenHour {
-
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne
+    @JoinColumn(name = "reward_id", nullable = false)
+    private Reward reward;
+
+    @ManyToOne
+    @JoinColumn(name = "event_id")
+    private Event event;
+
     @Column(name = "name")
     private String name;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
@@ -33,97 +46,179 @@ public class GoldenHour {
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reward_id")
-    private Reward reward;
-
-    @Column(name = "multiplier")
-    private Double multiplier;
+    @Column(name = "multiplier", nullable = false)
+    private Double multiplier = 1.0;
 
     @Column(name = "is_active")
-    @Default
     private Boolean isActive = true;
 
-    @Column(name = "created_at")
+    @Column(name = "version")
+    private Long version = 0L;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    @Version
-    @Column(name = "version")
-    private Long version;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-        if (isActive == null) {
-            isActive = true;
-        }
-        if (multiplier == null) {
-            multiplier = 1.0;
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 
     public boolean isActive() {
         return Boolean.TRUE.equals(isActive);
     }
 
-    public Double getMultiplier() {
-        return multiplier != null ? multiplier : 1.0;
+    public void setActive(boolean active) {
+        this.isActive = active;
+    }
+
+    // Hour-based access methods for backward compatibility
+    @Transient
+    public Integer getStartHour() {
+        return startTime != null ? startTime.getHour() : null;
+    }
+
+    public void setStartHour(Integer hour) {
+        if (hour != null) {
+            if (startTime == null) {
+                startTime = LocalDateTime.now();
+            }
+            startTime = startTime.withHour(hour).withMinute(0).withSecond(0).withNano(0);
+        }
+    }
+
+    @Transient
+    public Integer getEndHour() {
+        return endTime != null ? endTime.getHour() : null;
+    }
+
+    public void setEndHour(Integer hour) {
+        if (hour != null) {
+            if (endTime == null) {
+                endTime = LocalDateTime.now();
+            }
+            endTime = endTime.withHour(hour).withMinute(0).withSecond(0).withNano(0);
+        }
     }
 
     public boolean isWithinTimeRange(LocalDateTime dateTime) {
-        if (startTime == null || endTime == null) {
+        if (startTime == null || endTime == null || dateTime == null) {
             return false;
         }
-        LocalTime time = dateTime.toLocalTime();
-        if (startTime.isBefore(endTime)) {
-            // Normal case: start < end (e.g., 09:00-17:00)
-            return !time.isBefore(startTime.toLocalTime()) && time.isBefore(endTime.toLocalTime());
+
+        int currentHour = dateTime.getHour();
+        int startHour = startTime.getHour();
+        int endHour = endTime.getHour();
+        
+        if (startHour <= endHour) {
+            return currentHour >= startHour && currentHour < endHour;
         } else {
-            // Cross-midnight case: start > end (e.g., 22:00-06:00)
-            return !time.isBefore(startTime.toLocalTime()) || time.isBefore(endTime.toLocalTime());
+            // Handles cases crossing midnight (e.g., 22:00 - 03:00)
+            return currentHour >= startHour || currentHour < endHour;
         }
     }
 
-    public LocalDateTime toLocalDateTime(LocalTime time, LocalDateTime referenceDate) {
-        return referenceDate.withHour(time.getHour())
-                          .withMinute(time.getMinute())
-                          .withSecond(time.getSecond())
-                          .withNano(time.getNano());
+    public static GoldenHourBuilder builder() {
+        return new GoldenHourBuilder();
     }
 
-    public LocalTime toLocalTime(LocalDateTime dateTime) {
-        return dateTime.toLocalTime();
-    }
+    public static class GoldenHourBuilder {
+        private Long id;
+        private Reward reward;
+        private Event event;
+        private String name;
+        private LocalDateTime startTime;
+        private LocalDateTime endTime;
+        private Double multiplier = 1.0;
+        private Boolean isActive = true;
+        private Long version = 0L;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof GoldenHour)) return false;
-        GoldenHour that = (GoldenHour) o;
-        return id != null && id.equals(that.getId());
-    }
+        GoldenHourBuilder() {
+        }
 
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
+        public GoldenHourBuilder startHour(Integer hour) {
+            if (hour != null) {
+                LocalDateTime time = LocalDateTime.now()
+                    .withHour(hour)
+                    .withMinute(0)
+                    .withSecond(0)
+                    .withNano(0);
+                return startTime(time);
+            }
+            return this;
+        }
 
-    @Override
-    public String toString() {
-        return "GoldenHour(id=" + id +
-               ", name=" + name +
-               ", startTime=" + startTime +
-               ", endTime=" + endTime +
-               ", multiplier=" + multiplier +
-               ", isActive=" + isActive + ")";
+        public GoldenHourBuilder endHour(Integer hour) {
+            if (hour != null) {
+                LocalDateTime time = LocalDateTime.now()
+                    .withHour(hour)
+                    .withMinute(0)
+                    .withSecond(0)
+                    .withNano(0);
+                return endTime(time);
+            }
+            return this;
+        }
+
+        public GoldenHourBuilder id(Long id) {
+            this.id = id;
+            return this;
+        }
+
+        public GoldenHourBuilder reward(Reward reward) {
+            this.reward = reward;
+            return this;
+        }
+
+        public GoldenHourBuilder event(Event event) {
+            this.event = event;
+            return this;
+        }
+
+        public GoldenHourBuilder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public GoldenHourBuilder startTime(LocalDateTime startTime) {
+            this.startTime = startTime;
+            return this;
+        }
+
+        public GoldenHourBuilder endTime(LocalDateTime endTime) {
+            this.endTime = endTime;
+            return this;
+        }
+
+        public GoldenHourBuilder multiplier(Double multiplier) {
+            this.multiplier = multiplier;
+            return this;
+        }
+
+        public GoldenHourBuilder isActive(Boolean isActive) {
+            this.isActive = isActive;
+            return this;
+        }
+
+        public GoldenHourBuilder version(Long version) {
+            this.version = version;
+            return this;
+        }
+
+        public GoldenHourBuilder createdAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        public GoldenHourBuilder updatedAt(LocalDateTime updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
+
+        public GoldenHour build() {
+            return new GoldenHour(id, reward, event, name, startTime, endTime, 
+                               multiplier, isActive, version, createdAt, updatedAt);
+        }
     }
 }

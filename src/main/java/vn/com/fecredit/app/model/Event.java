@@ -1,137 +1,109 @@
 package vn.com.fecredit.app.model;
 
-import jakarta.persistence.*;
-import lombok.*;
-import lombok.Builder.Default;
-
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 @Entity
-@EntityListeners(AuditingEntityListener.class)
+@Table(name = "events")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "events", indexes = {
-    @Index(name = "idx_event_code", columnList = "code"),
-    @Index(name = "idx_event_dates", columnList = "start_date,end_date")
-})
 public class Event {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "code", unique = true, nullable = false)
     private String code;
 
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "description")
     private String description;
 
-    @Column(name = "start_date", nullable = false)
+    @Column(name = "total_spins", nullable = false)
+    @Builder.Default
+    private Long totalSpins = 0L;
+
+    @Column(name = "remaining_spins", nullable = false)
+    @Builder.Default
+    private Long remainingSpins = 0L;
+
+    @Column(name = "start_date")
     private LocalDateTime startDate;
 
-    @Column(name = "end_date", nullable = false)
+    @Column(name = "end_date")
     private LocalDateTime endDate;
 
-    @Column(name = "total_spins", nullable = false)
-    private Long totalSpins;
-
-    @Column(name = "remaining_spins")
-    private Long remainingSpins;
-
     @Column(name = "is_active")
-    private Boolean isActive;
+    @Builder.Default
+    private Boolean isActive = true;
 
-@CreatedDate
-@Column(name = "created_at", nullable = false, updatable = false)
-private LocalDateTime createdAt;
+    @Column(name = "version")
+    @Builder.Default
+    private Long version = 0L;
 
-@LastModifiedDate
-@Column(name = "updated_at", nullable = false)
-private LocalDateTime updatedAt;
+    @OneToMany(mappedBy = "event")
+    @Builder.Default
+    private Set<EventLocation> eventLocations = new HashSet<>();
 
-@OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
-@Default
-private Set<Reward> rewards = new HashSet<>();
+    @OneToMany(mappedBy = "event")
+    @Builder.Default
+    private Set<Reward> rewards = new HashSet<>();
 
-
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
-    @Default
+    @OneToMany(mappedBy = "event")
+    @Builder.Default
     private Set<Participant> participants = new HashSet<>();
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
-    @Default
+    @OneToMany(mappedBy = "event")
+    @Builder.Default
     private Set<SpinHistory> spinHistories = new HashSet<>();
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
-    @Default
-    private Set<GoldenHour> goldenHours = new HashSet<>();
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-    @Version
-    private Long version;
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        if (this.isActive == null) {
-            this.isActive = true;
-        }
-        if (this.totalSpins == null) {
-            this.totalSpins = 0L;
-        }
-        if (this.remainingSpins == null) {
-            this.remainingSpins = this.totalSpins;
-        }
-        if (this.startDate == null) {
-            this.startDate = now;
-        }
-        if (this.endDate == null) {
-            this.endDate = now.plusDays(7);
-        }
+    public boolean isActive() {
+        return Boolean.TRUE.equals(isActive);
     }
 
-    public Long getTotalSpins() {
-        return totalSpins != null ? totalSpins : 0L;
+    public void setActive(boolean active) {
+        this.isActive = active;
     }
 
-    public Long getRemainingSpins() {
-        return remainingSpins != null ? remainingSpins : 0L;
+    public void addLocation(EventLocation location) {
+        eventLocations.add(location);
+        location.setEvent(this);
     }
 
-    public void decrementRemainingSpins() {
-        if (this.remainingSpins != null && this.remainingSpins > 0) {
-            this.remainingSpins--;
-        }
-    }
-
-    public boolean hasSpinsAvailable() {
-        return getRemainingSpins() > 0;
-    }
-
-    public boolean isInProgress() {
-        LocalDateTime now = LocalDateTime.now();
-        return now.isAfter(startDate) && now.isBefore(endDate);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Event)) return false;
-        Event event = (Event) o;
-        return id != null && id.equals(event.getId());
-    }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
+    public void removeLocation(EventLocation location) {
+        eventLocations.remove(location);
+        location.setEvent(null);
     }
 
     public void addReward(Reward reward) {
@@ -144,10 +116,6 @@ private Set<Reward> rewards = new HashSet<>();
         reward.setEvent(null);
     }
 
-    public Set<Participant> getParticipants() {
-        return participants;
-    }
-
     public void addParticipant(Participant participant) {
         participants.add(participant);
         participant.setEvent(this);
@@ -156,10 +124,6 @@ private Set<Reward> rewards = new HashSet<>();
     public void removeParticipant(Participant participant) {
         participants.remove(participant);
         participant.setEvent(null);
-    }
-
-    public Set<SpinHistory> getSpinHistories() {
-        return spinHistories;
     }
 
     public void addSpinHistory(SpinHistory spinHistory) {
@@ -172,17 +136,20 @@ private Set<Reward> rewards = new HashSet<>();
         spinHistory.setEvent(null);
     }
 
-    public Set<GoldenHour> getGoldenHours() {
-        return goldenHours;
+    public synchronized void decrementRemainingSpins() {
+        if (remainingSpins > 0) {
+            remainingSpins--;
+        }
     }
 
-    public void addGoldenHour(GoldenHour goldenHour) {
-        goldenHours.add(goldenHour);
-        goldenHour.setEvent(this);
+    public boolean isInProgress() {
+        LocalDateTime now = LocalDateTime.now();
+        return isActive() && 
+               (startDate == null || startDate.isBefore(now)) &&
+               (endDate == null || endDate.isAfter(now));
     }
 
-    public void removeGoldenHour(GoldenHour goldenHour) {
-        goldenHours.remove(goldenHour);
-        goldenHour.setEvent(null);
+    public boolean hasSpinsAvailable() {
+        return isActive() && remainingSpins > 0;
     }
 }

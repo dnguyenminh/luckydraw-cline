@@ -1,74 +1,40 @@
 package vn.com.fecredit.app.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.model.Participant;
-
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import vn.com.fecredit.app.model.Participant;
+
 @Repository
-@Transactional(readOnly = true)
 public interface ParticipantRepository extends JpaRepository<Participant, Long>, JpaSpecificationExecutor<Participant> {
-
-    Optional<Participant> findByEventIdAndEmployeeId(Long eventId, String employeeId);
-
-    List<Participant> findByEventIdAndIsActive(Long eventId, boolean isActive);
-
-    boolean existsByEventIdAndEmployeeId(Long eventId, String employeeId);
-
-    boolean existsByCustomerId(String customerId);
-
-    boolean existsByCardNumber(String cardNumber);
-
-    boolean existsByEmail(String email);
-
-    long countByEventId(Long eventId);
-
+    
+    @Query("SELECT p FROM Participant p WHERE p.event.id = :eventId AND p.isActive = true")
+    List<Participant> findByEvent_IdAndIsActiveTrue(@Param("eventId") Long eventId);
+    
+    @Query("SELECT p FROM Participant p WHERE p.event.id = :eventId AND p.user.id = :userId")
+    Optional<Participant> findByEvent_IdAndUser_Id(@Param("eventId") Long eventId, @Param("userId") Long userId);
+    
+    boolean existsByEvent_IdAndUser_Id(Long eventId, Long userId);
+    
     Optional<Participant> findByCustomerId(String customerId);
-
-    List<Participant> findByEventIdAndSpinsRemainingGreaterThan(Long eventId, Long spins);
-
-    @Modifying
-    @Transactional
-    @Query("UPDATE Participant p " +
-           "SET p.spinsRemaining = :spinsRemaining, " +
-           "    p.updatedAt = CURRENT_TIMESTAMP " +
-           "WHERE p.id = :id")
-    int updateSpinsRemaining(@Param("id") Long id, @Param("spinsRemaining") Long spinsRemaining);
-
-    @Query("SELECT p FROM Participant p " +
-           "WHERE p.event.id = :eventId " +
-           "AND p.isActive = true " +
-           "AND p.spinsRemaining > 0")
-    List<Participant> findEligibleParticipants(@Param("eventId") Long eventId);
-
-    @Query("select p from Participant p " +
-           "where p.event.id = :eventId " +
-           "and p.isActive = true " +
-           "and (lower(p.name) like lower(concat('%', :searchText, '%')) " +
-           "or lower(p.email) like lower(concat('%', :searchText, '%')) " +
-           "or lower(p.customerId) like lower(concat('%', :searchText, '%')) " +
-           "or lower(p.cardNumber) like lower(concat('%', :searchText, '%')) " +
-           "or lower(p.employeeId) like lower(concat('%', :searchText, '%')))")
-    List<Participant> searchParticipants(@Param("eventId") Long eventId, @Param("searchText") String searchText);
-
-    @Modifying
-    @Transactional
-    @Query("UPDATE Participant p " +
-           "SET p.isActive = :status, " +
-           "    p.updatedAt = CURRENT_TIMESTAMP " +
-           "WHERE p.id = :id")
-    int updateParticipantStatus(@Param("id") Long id, @Param("status") boolean status);
-
-    @Query("SELECT COUNT(p) > 0 FROM Participant p " +
-           "WHERE p.event.id = :eventId " +
-           "AND p.isActive = true " +
-           "AND p.spinsRemaining > 0")
-    boolean hasEligibleParticipants(@Param("eventId") Long eventId);
+    
+    boolean existsByCustomerId(String customerId);
+    
+    boolean existsByCardNumber(String cardNumber);
+    
+    boolean existsByEmail(String email);
+    
+    @Query("SELECT COUNT(p) > 0 FROM Participant p WHERE p.event.id = :eventId AND p.isActive = true")
+    boolean existsByEvent_IdAndIsActiveTrue(@Param("eventId") Long eventId);
+    
+    Page<Participant> findAll(Specification<Participant> spec, Pageable pageable);
 }

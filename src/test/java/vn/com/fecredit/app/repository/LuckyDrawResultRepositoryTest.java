@@ -84,7 +84,7 @@ public class LuckyDrawResultRepositoryTest {
         reward.setName("Test Reward");
         reward.setQuantity(10);
         reward.setRemainingQuantity(5);
-        reward.setIsActive(true);
+        reward.setActive(true);
         reward.setCreatedAt(futureStart);
         reward.setUpdatedAt(futureStart);
         reward = rewardRepository.save(reward);

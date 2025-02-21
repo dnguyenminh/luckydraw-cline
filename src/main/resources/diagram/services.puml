@@ -9,10 +9,28 @@ skinparam class {
 
 ' Services and Components
 class RewardSelectionService {
-    -Random random
+    -Map<String, Set<String>> provinceCache
     +Optional<Reward> selectReward(Event, List<Reward>, long, Optional<GoldenHour>, String)
-    -Optional<Reward> selectRandomReward(List<Reward>, long, Optional<GoldenHour>, String)
+    -Optional<Reward> trySingleReward(Reward, String, long)
     -boolean isLocationAllowed(Reward, String)
+}
+
+class EventLocationService {
+    -EventLocationRepository eventLocationRepository
+    +List<EventLocation> getActiveLocations(Long)
+    +long getRemainingSpins(Long)
+    +EventLocation createEventLocation(Event, String, int)
+    +Optional<EventLocation> allocateSpin(Long)
+    +void addSpins(Long, int)
+}
+
+class ParticipantService {
+    -ParticipantRepository participantRepository
+    -EventLocationService eventLocationService
+    +Optional<Participant> register(ParticipantDTO)
+    +Optional<Participant> findByEventAndCustomerId(Long, String)
+    +boolean canSpin(Participant)
+    +void updateSpinCount(Long)
 }
 
 class EventService {
@@ -33,8 +51,8 @@ class RewardService {
 
 class LuckyDrawResultService {
     -LuckyDrawResultRepository resultRepository
-    +LuckyDrawResult recordSpin(User, Event, Reward)
-    +List<LuckyDrawResult> findByUser(User)
+    +LuckyDrawResult recordSpin(Participant, Event, Reward)
+    +List<LuckyDrawResult> findByParticipant(Participant)
     +List<LuckyDrawResult> findByEvent(Event)
 }
 
@@ -50,6 +68,19 @@ interface EventRepository {
     +Event save(Event)
 }
 
+interface EventLocationRepository {
+    +List<EventLocation> findActiveByEventId(Long)
+    +Optional<EventLocation> findByIdForUpdate(Long)
+    +int decrementRemainingSpins(Long)
+    +Long sumRemainingSpinsByEvent(Long)
+}
+
+interface ParticipantRepository {
+    +Optional<Participant> findByEventAndCustomerId(Long, String)
+    +Optional<Participant> findByEventLocationAndCustomerId(Long, String)
+    +List<Participant> findByEventLocation(Long)
+}
+
 interface RewardRepository {
     +List<Reward> findByEventAndLocation(Event, String)
     +Reward save(Reward)
@@ -57,7 +88,7 @@ interface RewardRepository {
 
 interface LuckyDrawResultRepository {
     +LuckyDrawResult save(LuckyDrawResult)
-    +List<LuckyDrawResult> findByUser(User)
+    +List<LuckyDrawResult> findByParticipant(Participant)
 }
 
 interface GoldenHourRepository {
@@ -70,7 +101,12 @@ RewardSelectionService ..> RewardService : uses
 RewardSelectionService ..> EventService : uses
 RewardSelectionService ..> LuckyDrawResultService : uses
 RewardSelectionService ..> GoldenHourService : uses
+RewardSelectionService ..> EventLocationService : uses
+RewardSelectionService ..> ParticipantService : uses
 
+EventLocationService --> EventLocationRepository : uses
+ParticipantService --> ParticipantRepository : uses
+ParticipantService ..> EventLocationService : uses
 EventService --> EventRepository : uses
 RewardService --> RewardRepository : uses
 LuckyDrawResultService --> LuckyDrawResultRepository : uses

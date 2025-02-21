@@ -79,7 +79,7 @@ class SpinHistoryRepositoryTest {
         reward.setName("Test Reward");
         reward.setQuantity(10);
         reward.setRemainingQuantity(5);
-        reward.setIsActive(true);
+        reward.setActive(true);
         reward.setCreatedAt(now);
         reward.setUpdatedAt(now);
         reward = rewardRepository.save(reward);

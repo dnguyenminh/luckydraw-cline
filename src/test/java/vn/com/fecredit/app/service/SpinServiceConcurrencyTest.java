@@ -101,7 +101,7 @@ class SpinServiceConcurrencyTest {
         // Setup mock trả về kết quả
         when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
         when(rewardRepository.findActiveRewardsByEventId(1L)).thenReturn(rewards);
-        when(goldenHourRepository.findActiveGoldenHour(eq(1L), any()))
+        when(goldenHourRepository.findActiveGoldenHour(eq(1L), any(LocalDateTime.class)))
                 .thenReturn(Optional.empty());
 
         for (Participant p : participants) {

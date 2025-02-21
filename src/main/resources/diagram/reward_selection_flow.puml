@@ -1,60 +1,69 @@
 @startuml Reward Selection Flow
 
-skinparam sequence {
-    ParticipantBackgroundColor white
-    ParticipantBorderColor #666666
+' Style settings
+skinparam {
     ArrowColor #666666
+    BackgroundColor white
+    ActivityBackgroundColor white
+    ActivityBorderColor #666666
+    ActivityDiamondBackgroundColor white
+    ActivityDiamondBorderColor #666666
 }
 
-actor User
-participant "API Controller" as API
-participant "RewardSelectionService" as RSS
-participant "EventService" as ES
-participant "RewardService" as RS
-participant "GoldenHourService" as GHS
-participant "LuckyDrawResultService" as LDS
+|Client|
+start
+:Participant requests spin;
 
-User -> API: Spin request
-activate API
+|ParticipantService|
+:Validate participant eligibility;
+if (Can participant spin?) is (no) then
+    :Return error message;
+    end
+endif
+:Check spin limits;
+if (Spins remaining?) is (no) then
+    :Return no spins error;
+    end
+endif
 
-API -> ES: Find active event
-activate ES
-ES --> API: event
-deactivate ES
+|EventLocationService|
+:Lock event location for update;
+if (Location has spins?) is (no) then
+    :Return no spins error;
+    end
+endif
+:Decrement location spins;
 
-API -> RS: Get available rewards
-activate RS
-RS --> API: rewards list
-deactivate RS
+|RewardSelectionService|
+:Get eligible rewards
+for location;
+:Calculate win probability
+based on remaining spins;
+if (Should win?) is (no) then
+    :Return no win;
+    |LuckyDrawResultService|
+    :Record spin attempt;
+    end
+endif
 
-API -> GHS: Check golden hour
-activate GHS
-GHS --> API: Optional<GoldenHour>
-deactivate GHS
+|RewardSelectionService|
+:Select reward based on
+quantities and location;
+if (Reward available?) is (no) then
+    :Return no reward available;
+    |LuckyDrawResultService|
+    :Record failed attempt;
+    end
+endif
 
-API -> RSS: selectReward(event, rewards, spins, goldenHour, location)
-activate RSS
+:Update reward quantity;
 
-RSS -> RSS: Filter rewards by location
-RSS -> RSS: Calculate total rewards
-RSS -> RSS: Perform reservoir sampling
-RSS -> RSS: Assign positions to rewards
-RSS -> RSS: Generate spin position
-RSS -> RSS: Check for win
+|LuckyDrawResultService|
+:Record successful spin;
+:Create lucky draw result;
 
-alt Reward Won
-    RSS --> API: Optional<Reward>
-    API -> LDS: recordSpin(user, event, reward)
-    activate LDS
-    LDS --> API: result
-    deactivate LDS
-else No Win
-    RSS --> API: Optional.empty()
-end
-
-API --> User: Spin result
-
-deactivate RSS
-deactivate API
+|Client|
+:Return reward to participant;
+stop
 
 @enduml

@@ -1,8 +1,13 @@
 package vn.com.fecredit.app.service;
 
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
 import vn.com.fecredit.app.dto.GoldenHourDTO;
 import vn.com.fecredit.app.exception.ResourceNotFoundException;
 import vn.com.fecredit.app.mapper.GoldenHourMapper;
@@ -10,10 +15,6 @@ import vn.com.fecredit.app.model.GoldenHour;
 import vn.com.fecredit.app.model.Reward;
 import vn.com.fecredit.app.repository.GoldenHourRepository;
 import vn.com.fecredit.app.repository.RewardRepository;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,68 +24,71 @@ public class GoldenHourService {
     private final RewardRepository rewardRepository;
     private final GoldenHourMapper goldenHourMapper;
 
-    @Transactional(readOnly = true)
-    public Optional<GoldenHour> findActiveGoldenHour(Long eventId, LocalDateTime currentTime) {
-        return goldenHourRepository.findActiveGoldenHour(eventId, currentTime);
+    public List<GoldenHour> findByEventIdAndIsActiveTrue(Long eventId) {
+        return goldenHourRepository.findByEventIdAndIsActiveTrue(eventId);
     }
 
-    @Transactional(readOnly = true)
-    public Double getGoldenHourMultiplier(Long eventId, Long goldenHourId, LocalDateTime dateTime) {
-        if (goldenHourId == null) {
-            // When no specific golden hour is requested, find any active one
-            return goldenHourRepository.findActiveGoldenHour(eventId, dateTime)
-                    .map(GoldenHour::getMultiplier)
-                    .orElse(1.0);
-        }
+    public List<GoldenHour> findActiveByRewardIdWithDetails(Long rewardId) {
+        return goldenHourRepository.findActiveByRewardIdWithDetails(rewardId);
+    }
 
-        // When a specific golden hour is requested, check if it's active and within time range
-        return goldenHourRepository.findById(goldenHourId)
-                .filter(GoldenHour::isActive)
-                .filter(gh -> gh.isWithinTimeRange(dateTime))
-                .map(GoldenHour::getMultiplier)
-                .orElse(1.0);
+    public Optional<GoldenHour> findByIdWithDetails(Long id) {
+        return goldenHourRepository.findByIdWithDetails(id);
+    }
+
+    public Double getGoldenHourMultiplier(Long rewardId, Long userId, LocalDateTime currentTime) {
+        Optional<GoldenHour> activeGoldenHour = goldenHourRepository.findActiveGoldenHour(rewardId, currentTime);
+        return activeGoldenHour.map(GoldenHour::getMultiplier).orElse(1.0);
+    }
+
+    public boolean isGoldenHourActive(Long rewardId, LocalDateTime dateTime) {
+        return goldenHourRepository.isGoldenHourActive(rewardId, dateTime);
     }
 
     @Transactional
-    public GoldenHourDTO createGoldenHour(Long rewardId, GoldenHourDTO.CreateRequest request) {
+    public boolean updateStatus(Long id, boolean status) {
+        int updated = goldenHourRepository.updateStatus(id, status);
+        return updated > 0;
+    }
+
+    @Transactional
+    public GoldenHourDTO save(GoldenHourDTO dto) {
+        GoldenHour goldenHour = goldenHourMapper.toEntity(dto);
+        GoldenHour saved = goldenHourRepository.save(goldenHour);
+        return goldenHourMapper.toDTO(saved);
+    }
+
+    @Transactional
+    public GoldenHourDTO createGoldenHour(long rewardId, GoldenHourDTO.CreateRequest request) {
         Reward reward = rewardRepository.findById(rewardId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reward", "id", rewardId));
-
-        GoldenHour goldenHour = goldenHourMapper.createEntity(request);
+            .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + rewardId));
+            
+        GoldenHour goldenHour = goldenHourMapper.toEntity(request);
         goldenHour.setReward(reward);
-        goldenHour = goldenHourRepository.save(goldenHour);
-
-        return goldenHourMapper.toDTO(goldenHour);
+        
+        GoldenHour saved = goldenHourRepository.save(goldenHour);
+        return goldenHourMapper.toDTO(saved);
     }
 
     @Transactional
     public GoldenHourDTO updateGoldenHour(Long id, GoldenHourDTO.UpdateRequest request) {
         GoldenHour goldenHour = goldenHourRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("GoldenHour", "id", id));
+            .orElseThrow(() -> new ResourceNotFoundException("GoldenHour not found with id: " + id));
 
-        goldenHourMapper.updateEntityFromDTO(request, goldenHour);
-        goldenHour = goldenHourRepository.save(goldenHour);
-
-        return goldenHourMapper.toDTO(goldenHour);
+        goldenHourMapper.updateEntity(goldenHour, request);
+        GoldenHour saved = goldenHourRepository.save(goldenHour);
+        return goldenHourMapper.toDTO(saved);
     }
 
-    @Transactional(readOnly = true)
-    public GoldenHour findByRewardIdAndIsActiveTrue(Long rewardId) {
-        List<GoldenHour> activeHours = goldenHourRepository.findByRewardIdAndIsActiveTrue(rewardId);
-        return activeHours.isEmpty() ? null : activeHours.get(0);
+    public List<GoldenHour> findActiveGoldenHoursOrdered(Long rewardId) {
+        return goldenHourRepository.findActiveGoldenHoursOrdered(rewardId);
     }
 
-    @Transactional
-    public void deactivateGoldenHour(Long id) {
-        GoldenHour goldenHour = goldenHourRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("GoldenHour", "id", id));
-        goldenHour.setIsActive(false);
-        goldenHourRepository.save(goldenHour);
-        goldenHourRepository.flush();
+    public Optional<GoldenHour> findActiveGoldenHour(Long rewardId, LocalDateTime currentTime) {
+        return goldenHourRepository.findActiveGoldenHour(rewardId, currentTime);
     }
 
-    @Transactional
-    public void deleteGoldenHour(Long id) {
-        goldenHourRepository.deleteById(id);
+    public boolean existsByEventIdAndName(Long eventId, String name) {
+        return goldenHourRepository.existsByEventIdAndName(eventId, name);
     }
 }

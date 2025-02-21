@@ -4,15 +4,13 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,43 +18,50 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
-@Table(name = "roles")
 @Getter
 @Setter
+@Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Role {
+@Table(name = "regions")
+public class Region {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", unique = true, nullable = false)
+    @Column(name = "code", nullable = false, unique = true)
+    private String code;
+
+    @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "description")
     private String description;
 
-    @Column(name = "created_by")
-    private String createdBy;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Column(name = "province")
+    @Builder.Default
+    private Set<String> provinces = new HashSet<>();
 
-    @Column(name = "last_modified_by")
-    private String lastModifiedBy;
+    @Column(name = "is_active", nullable = false)
+    private boolean active;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "version")
-    @Builder.Default
-    private Long version = 0L;
+    public boolean getIsActive() {
+        return active;
+    }
 
-    @ManyToMany(mappedBy = "roles")
-    @Builder.Default
-    private Set<User> users = new HashSet<>();
+    public void setIsActive(boolean isActive) {
+        this.active = isActive;
+    }
+
+    public boolean containsProvince(String province) {
+        return provinces.contains(province.toUpperCase().trim());
+    }
 }

@@ -17,12 +17,24 @@ import java.util.Set;
 @Transactional(readOnly = true)
 public interface LuckyDrawResultRepository extends JpaRepository<LuckyDrawResult, Long> {
 
-    List<LuckyDrawResult> findByParticipantId(Long participantId);
+    @Query("SELECT r FROM LuckyDrawResult r " +
+           "WHERE r.participant.id = :participantId " +
+           "AND r.winTime = (SELECT MIN(r2.winTime) " +
+           "                FROM LuckyDrawResult r2 " +
+           "                WHERE r2.participant.id = :participantId " +
+           "                AND r2.packNumber = r.packNumber)")
+    List<LuckyDrawResult> findByParticipantId(@Param("participantId") Long participantId);
 
     @Query("SELECT r FROM LuckyDrawResult r " +
            "WHERE r.participant.id = :participantId " +
            "AND r.reward.id = :rewardId " +
-           "AND r.isClaimed = false")
+           "AND r.isClaimed = false " +
+           "AND r.winTime = (SELECT MIN(r2.winTime) " +
+           "                 FROM LuckyDrawResult r2 " +
+           "                 WHERE r2.participant.id = :participantId " +
+           "                 AND r2.reward.id = :rewardId " +
+           "                 AND r2.packNumber = r.packNumber " +
+           "                 AND r2.isClaimed = false)")
     List<LuckyDrawResult> findUnclaimedRewards(
             @Param("participantId") Long participantId,
             @Param("rewardId") Long rewardId);
@@ -30,12 +42,17 @@ public interface LuckyDrawResultRepository extends JpaRepository<LuckyDrawResult
     @Query("SELECT r FROM LuckyDrawResult r " +
            "WHERE r.reward.id = :rewardId " +
            "AND r.packNumber = :packNumber " +
-           "AND r.isClaimed = false")
+           "AND r.isClaimed = false " +
+           "AND r.winTime = (SELECT MIN(r2.winTime) " +
+           "                 FROM LuckyDrawResult r2 " +
+           "                 WHERE r2.reward.id = :rewardId " +
+           "                 AND r2.packNumber = :packNumber " +
+           "                 AND r2.isClaimed = false)")
     Optional<LuckyDrawResult> findUnclaimedByRewardIdAndPackNumber(
             @Param("rewardId") Long rewardId,
             @Param("packNumber") Integer packNumber);
 
-    @Query("SELECT COUNT(r) FROM LuckyDrawResult r " +
+    @Query("SELECT COUNT(DISTINCT r.packNumber) FROM LuckyDrawResult r " +
            "WHERE r.reward.id = :rewardId " +
            "AND r.isClaimed = false " +
            "AND r.winTime >= :startTime " +
@@ -61,6 +78,11 @@ public interface LuckyDrawResultRepository extends JpaRepository<LuckyDrawResult
            "WHERE r.participant.event.id = :eventId " +
            "AND r.winTime >= :startTime " +
            "AND r.winTime < :endTime " +
+           "AND r.winTime = (SELECT MIN(r2.winTime) " +
+           "                FROM LuckyDrawResult r2 " +
+           "                WHERE r2.participant.event.id = :eventId " +
+           "                AND r2.packNumber = r.packNumber " +
+           "                AND r2.reward.id = r.reward.id) " +
            "ORDER BY r.winTime DESC")
     List<LuckyDrawResult> findByEventIdAndTimeRange(
             @Param("eventId") Long eventId,
@@ -98,10 +120,13 @@ public interface LuckyDrawResultRepository extends JpaRepository<LuckyDrawResult
             @Param("claimedBy") String claimedBy,
             @Param("notes") String notes);
 
-    @Query("SELECT r FROM LuckyDrawResult r " +
+    @Query("SELECT DISTINCT r FROM LuckyDrawResult r " +
            "LEFT JOIN FETCH r.participant p " +
            "LEFT JOIN FETCH r.reward " +
-           "WHERE r.spinHistory.id = :spinHistoryId")
+           "WHERE r.spinHistory.id = :spinHistoryId " +
+           "AND r.winTime = (SELECT MIN(r2.winTime) " +
+           "                 FROM LuckyDrawResult r2 " +
+           "                 WHERE r2.spinHistory.id = :spinHistoryId)")
     Optional<LuckyDrawResult> findBySpinHistoryIdWithDetails(
             @Param("spinHistoryId") Long spinHistoryId);
 

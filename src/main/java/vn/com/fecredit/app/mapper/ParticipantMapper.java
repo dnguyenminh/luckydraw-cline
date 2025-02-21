@@ -3,10 +3,15 @@ package vn.com.fecredit.app.mapper;
 import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Component;
+
+import lombok.RequiredArgsConstructor;
 import vn.com.fecredit.app.dto.ParticipantDTO;
+import vn.com.fecredit.app.model.Event;
+import vn.com.fecredit.app.model.EventLocation;
 import vn.com.fecredit.app.model.Participant;
 
 @Component
+@RequiredArgsConstructor
 public class ParticipantMapper {
 
     public ParticipantDTO toDTO(Participant entity) {
@@ -14,19 +19,69 @@ public class ParticipantMapper {
             return null;
         }
 
-        return ParticipantDTO.builder()
+        Event event = entity.getEvent();
+        EventLocation eventLocation = entity.getEventLocation();
+
+        ParticipantDTO.ParticipantDTOBuilder builder = ParticipantDTO.builder()
                 .id(entity.getId())
-                .customerId(entity.getCustomerId() != null ? entity.getCustomerId() : "")
-                .cardNumber(entity.getCardNumber() != null ? entity.getCardNumber() : "")
-                .email(entity.getEmail() != null ? entity.getEmail() : "")
-                .fullName(entity.getFullName() != null ? entity.getFullName() : "")
-                .phoneNumber(entity.getPhoneNumber() != null ? entity.getPhoneNumber() : "")
-                .province(entity.getProvince() != null ? entity.getProvince() : "")
+                .customerId(getOrEmpty(entity.getCustomerId()))
+                .employeeId(getOrEmpty(entity.getEmployeeId()))
+                .cardNumber(getOrEmpty(entity.getCardNumber()))
+                .fullName(getOrEmpty(entity.getFullName()))
+                .email(getOrEmpty(entity.getEmail()))
+                .phoneNumber(getOrEmpty(entity.getPhoneNumber()))
+                .name(getOrEmpty(entity.getName()))
+                .province(getOrEmpty(entity.getProvince()))
+                .isActive(entity.getIsActive())
+                .spinsRemaining(entity.getSpinsRemaining())
                 .dailySpinLimit(entity.getDailySpinLimit())
-                .isActive(entity.getIsActive() != null ? entity.getIsActive() : true)
-                .eventId(entity.getEvent() != null ? entity.getEvent().getId() : null)
-                .createdAt(entity.getCreatedAt() != null ? entity.getCreatedAt() : LocalDateTime.now())
-                .updatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt() : LocalDateTime.now())
-                .build();
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt());
+
+        // Add event information if available
+        if (event != null) {
+            builder.eventId(event.getId())
+                   .eventName(event.getName())
+                   .eventStartDate(event.getStartDate())
+                   .eventEndDate(event.getEndDate());
+        }
+
+        // Add event location information if available
+        if (eventLocation != null) {
+            builder.eventLocationId(eventLocation.getId())
+                   .location(eventLocation.getLocation())
+                   .locationTotalSpins(eventLocation.getTotalSpins())
+                   .locationRemainingSpins(eventLocation.getRemainingSpins());
+        }
+
+        return builder.build();
+    }
+
+    public void updateEntityFromDTO(ParticipantDTO dto, Participant entity) {
+        if (dto == null || entity == null) {
+            return;
+        }
+
+        entity.setCustomerId(dto.getCustomerId());
+        entity.setEmployeeId(dto.getEmployeeId());
+        entity.setCardNumber(dto.getCardNumber());
+        entity.setFullName(dto.getFullName());
+        entity.setEmail(dto.getEmail());
+        entity.setPhoneNumber(dto.getPhoneNumber());
+        entity.setName(dto.getName());
+        entity.setProvince(dto.getProvince());
+        entity.setIsActive(dto.isActive());
+        entity.setDailySpinLimit(dto.getDailySpinLimit());
+        entity.setSpinsRemaining(dto.getSpinsRemaining());
+        
+        if (dto.getUpdatedAt() != null) {
+            entity.setUpdatedAt(dto.getUpdatedAt());
+        } else {
+            entity.setUpdatedAt(LocalDateTime.now());
+        }
+    }
+
+    private String getOrEmpty(String value) {
+        return value != null ? value : "";
     }
 }

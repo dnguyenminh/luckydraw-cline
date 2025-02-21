@@ -1,14 +1,11 @@
 package vn.com.fecredit.app.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import java.time.LocalDateTime;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -16,32 +13,58 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class GoldenHourDTO {
     private Long id;
+    private Long eventId;
+    private Long rewardId;
     private String name;
-    private Double multiplier;
+    private Integer startHour;
+    private Integer endHour;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private Double multiplier;
     private Boolean isActive;
-    private Long rewardId;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+        if (startTime != null) {
+            this.startHour = startTime.getHour();
+        }
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+        if (endTime != null) {
+            this.endHour = endTime.getHour();
+        }
+    }
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CreateRequest {
-        @NotBlank(message = "Name is required")
         private String name;
-
-        @NotNull(message = "Multiplier is required")
-        @Positive(message = "Multiplier must be greater than 0")
-        private Double multiplier;
-
-        @NotNull(message = "Start time is required")
+        private Integer startHour;
+        private Integer endHour;
         private LocalDateTime startTime;
-
-        @NotNull(message = "End time is required")
         private LocalDateTime endTime;
-
+        private Double multiplier;
         private Boolean isActive;
+
+        public void setStartTime(LocalDateTime startTime) {
+            this.startTime = startTime;
+            if (startTime != null) {
+                this.startHour = startTime.getHour();
+            }
+        }
+
+        public void setEndTime(LocalDateTime endTime) {
+            this.endTime = endTime;
+            if (endTime != null) {
+                this.endHour = endTime.getHour();
+            }
+        }
     }
 
     @Data
@@ -50,9 +73,25 @@ public class GoldenHourDTO {
     @AllArgsConstructor
     public static class UpdateRequest {
         private String name;
-        private Double multiplier;
+        private Integer startHour;
+        private Integer endHour;
         private LocalDateTime startTime;
         private LocalDateTime endTime;
+        private Double multiplier;
         private Boolean isActive;
+
+        public void setStartTime(LocalDateTime startTime) {
+            this.startTime = startTime;
+            if (startTime != null) {
+                this.startHour = startTime.getHour();
+            }
+        }
+
+        public void setEndTime(LocalDateTime endTime) {
+            this.endTime = endTime;
+            if (endTime != null) {
+                this.endHour = endTime.getHour();
+            }
+        }
     }
 }

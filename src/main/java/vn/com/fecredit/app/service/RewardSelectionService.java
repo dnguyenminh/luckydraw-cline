@@ -1,181 +1,92 @@
 package vn.com.fecredit.app.service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Random;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import vn.com.fecredit.app.model.Event;
 import vn.com.fecredit.app.model.GoldenHour;
 import vn.com.fecredit.app.model.Reward;
+import vn.com.fecredit.app.repository.EventRepository;
+import vn.com.fecredit.app.repository.RewardRepository;
 
 @Service
-@Slf4j
+@RequiredArgsConstructor
 public class RewardSelectionService {
-    private static final int MAX_REWARDS = 16;
-    private static final double EARLY_PHASE = 0.5;  // First 50% of spins
-    private static final double ENDGAME_THRESHOLD = 0.7; // Last 30% of spins
-    
-    private final ThreadLocal<AtomicInteger[]> quantityRefs = ThreadLocal.withInitial(() -> new AtomicInteger[MAX_REWARDS]);
-    private final ThreadLocal<Map<Long, Integer>> winCounters = ThreadLocal.withInitial(HashMap::new);
-    private final Map<String, Set<String>> provinceCache = new HashMap<>();
-    private final ThreadLocal<Long> initialSpins = ThreadLocal.withInitial(() -> 0L);
+
+    private final RewardRepository rewardRepository;
+    private final EventRepository eventRepository;
+    private final Random random = new Random();
 
     @Transactional
-    public Optional<Reward> selectReward(Event event, List<Reward> rewards, long remainingSpins,
-            Optional<GoldenHour> goldenHour, String customerLocation) {
-
-        if (remainingSpins <= 0 || rewards.isEmpty()) {
+    public Optional<Reward> selectReward(Event event, List<Reward> availableRewards, 
+                                      long spinId, Optional<GoldenHour> activeGoldenHour, 
+                                      String province) {
+        if (!event.isActive()) {
             return Optional.empty();
         }
 
-        // Track total spins
-        Long totalSpins = initialSpins.get();
-        if (totalSpins == 0 || totalSpins < remainingSpins) {
-            totalSpins = remainingSpins;
-            initialSpins.set(totalSpins);
+        List<Reward> eligibleRewards;
+        if (activeGoldenHour.isPresent()) {
+            eligibleRewards = new ArrayList<>();
+            eligibleRewards.add(activeGoldenHour.get().getReward());
+        } else {
+            eligibleRewards = filterEligibleRewards(availableRewards, province);
         }
 
-        // Calculate current phase
-        double progress = (totalSpins - remainingSpins) / (double)totalSpins;
-        boolean isEarlyPhase = progress <= EARLY_PHASE;
-        boolean isEndgame = progress >= ENDGAME_THRESHOLD;
+        if (eligibleRewards.isEmpty()) {
+            return Optional.empty();
+        }
 
-        // Filter and prepare rewards
-        List<Reward> validRewards = new ArrayList<>(Math.min(rewards.size(), MAX_REWARDS));
-        Map<Long, Integer> currentWins = winCounters.get();
-        int totalRemainingRewards = 0;
+        double totalProbability = eligibleRewards.stream()
+            .mapToDouble(Reward::getProbability)
+            .sum();
 
-        for (Reward reward : rewards) {
-            int remaining = reward.getRemainingQuantity();
-            if (remaining > 0 && isLocationAllowed(reward, customerLocation)) {
-                // Early phase: enforce strict limits on wins
-                if (isEarlyPhase) {
-                    int maxEarlyWins = reward.getQuantity() / 2; // Half of total quantity
-                    int currentWinCount = currentWins.getOrDefault(reward.getId(), 0);
-                    if (currentWinCount >= maxEarlyWins) {
-                        continue;
+        if (totalProbability <= 0) {
+            return Optional.empty();
+        }
+
+        synchronized (this) {
+            double randomValue = random.nextDouble() * totalProbability;
+            double cumulativeProbability = 0;
+
+            for (Reward reward : eligibleRewards) {
+                cumulativeProbability += reward.getProbability();
+                if (randomValue <= cumulativeProbability) {
+                    if (reward.getRemainingQuantity() > 0) {
+                        reward.decrementRemainingQuantity();
+                        rewardRepository.save(reward);
+                        return Optional.of(reward);
                     }
                 }
-                validRewards.add(reward);
-                totalRemainingRewards += remaining;
             }
-        }
-
-        if (validRewards.isEmpty() || totalRemainingRewards == 0) {
-            return Optional.empty();
-        }
-
-        // Must give out all remaining rewards if running out of spins
-        if (remainingSpins <= totalRemainingRewards) {
-            return selectRewardProportional(validRewards);
-        }
-
-        // Endgame phase - Aggressive distribution
-        if (isEndgame) {
-            double endgameProgress = (progress - ENDGAME_THRESHOLD) / (1.0 - ENDGAME_THRESHOLD);
-            double winChance = Math.min(1.0, endgameProgress + 0.3);
-            if (ThreadLocalRandom.current().nextDouble() < winChance) {
-                return selectRewardProportional(validRewards);
-            }
-            return Optional.empty();
-        }
-
-        // Normal phase - Maintain proper ratios
-        double targetRate = totalRemainingRewards / (double)totalSpins;
-        if (!isEarlyPhase) {
-            // Increase win rate after early phase
-            targetRate *= (1.0 + (progress - EARLY_PHASE));
-        }
-
-        if (ThreadLocalRandom.current().nextDouble() < targetRate) {
-            return selectRewardProportional(validRewards);
         }
 
         return Optional.empty();
     }
 
-    private Optional<Reward> selectRewardProportional(List<Reward> validRewards) {
-        int totalRemaining = validRewards.stream()
-                .mapToInt(Reward::getRemainingQuantity)
-                .sum();
+    @Transactional
+    public Optional<Reward> selectReward(Long eventId, String province) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event not found with id: " + eventId));
 
-        int selection = ThreadLocalRandom.current().nextInt(totalRemaining);
-        int cumulative = 0;
-        
-        for (Reward reward : validRewards) {
-            cumulative += reward.getRemainingQuantity();
-            if (selection < cumulative) {
-                return claimReward(reward);
+        List<Reward> availableRewards = rewardRepository.findAvailableRewards(eventId, LocalDateTime.now());
+        return selectReward(event, availableRewards, 0L, Optional.empty(), province);
+    }
+
+    private List<Reward> filterEligibleRewards(List<Reward> rewards, String province) {
+        List<Reward> eligibleRewards = new ArrayList<>();
+        for (Reward reward : rewards) {
+            if (reward.isAvailable(LocalDateTime.now(), province)) {
+                eligibleRewards.add(reward);
             }
         }
-        
-        return Optional.empty();
-    }
-
-    private Optional<Reward> claimReward(Reward reward) {
-        AtomicInteger quantity = getQuantityRef(reward);
-        int current;
-        do {
-            current = quantity.get();
-            if (current <= 0) return Optional.empty();
-        } while (!quantity.compareAndSet(current, current - 1));
-
-        reward.setRemainingQuantity(current - 1);
-        winCounters.get().merge(reward.getId(), 1, Integer::sum);
-        return Optional.of(reward);
-    }
-
-    private boolean isLocationAllowed(Reward reward, String customerLocation) {
-        String provinces = reward.getApplicableProvinces();
-        
-        if (provinces == null || provinces.isEmpty()) {
-            return true;
-        }
-
-        if (customerLocation == null || customerLocation.isEmpty()) {
-            return false;
-        }
-
-        Set<String> locationSet = provinceCache.get(provinces);
-        if (locationSet == null) {
-            locationSet = new HashSet<>();
-            for (String location : provinces.split(",")) {
-                locationSet.add(location.trim().toUpperCase());
-            }
-            provinceCache.put(provinces, locationSet);
-        }
-
-        return locationSet.contains(customerLocation.trim().toUpperCase());
-    }
-
-    private AtomicInteger getQuantityRef(Reward reward) {
-        AtomicInteger[] refs = quantityRefs.get();
-        int index = (int)(reward.getId() % refs.length);
-        AtomicInteger ref = refs[index];
-        if (ref == null) {
-            ref = new AtomicInteger(reward.getRemainingQuantity());
-            refs[index] = ref;
-        } else {
-            ref.set(reward.getRemainingQuantity());
-        }
-        return ref;
-    }
-
-    public void resetCaches() {
-        provinceCache.clear();
-        quantityRefs.remove();
-        winCounters.remove();
-        initialSpins.remove();
+        return eligibleRewards;
     }
 }

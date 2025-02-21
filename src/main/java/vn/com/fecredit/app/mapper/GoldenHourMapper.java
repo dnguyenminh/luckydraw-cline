@@ -1,26 +1,37 @@
 package vn.com.fecredit.app.mapper;
 
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Component;
+
 import vn.com.fecredit.app.dto.GoldenHourDTO;
 import vn.com.fecredit.app.model.GoldenHour;
-import vn.com.fecredit.app.model.Reward;
 
 @Component
 public class GoldenHourMapper {
 
-    public GoldenHourDTO toDTO(GoldenHour goldenHour) {
-        if (goldenHour == null) {
+    public GoldenHourDTO toDTO(GoldenHour entity) {
+        if (entity == null) {
             return null;
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startTime = now.withHour(entity.getStartHour()).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endTime = now.withHour(entity.getEndHour()).withMinute(0).withSecond(0).withNano(0);
+
         return GoldenHourDTO.builder()
-                .id(goldenHour.getId())
-                .name(goldenHour.getName())
-                .startTime(goldenHour.getStartTime())
-                .endTime(goldenHour.getEndTime())
-                .multiplier(goldenHour.getMultiplier())
-                .isActive(goldenHour.getIsActive())
-                .rewardId(goldenHour.getReward() != null ? goldenHour.getReward().getId() : null)
+                .id(entity.getId())
+                .eventId(entity.getEvent() != null ? entity.getEvent().getId() : null)
+                .rewardId(entity.getReward() != null ? entity.getReward().getId() : null)
+                .name(entity.getName())
+                .startHour(entity.getStartHour())
+                .endHour(entity.getEndHour())
+                .startTime(startTime)
+                .endTime(endTime)
+                .multiplier(entity.getMultiplier())
+                .isActive(entity.isActive())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
                 .build();
     }
 
@@ -32,50 +43,71 @@ public class GoldenHourMapper {
         return GoldenHour.builder()
                 .id(dto.getId())
                 .name(dto.getName())
-                .startTime(dto.getStartTime())
-                .endTime(dto.getEndTime())
+                .startHour(dto.getStartHour())
+                .endHour(dto.getEndHour())
                 .multiplier(dto.getMultiplier())
                 .isActive(dto.getIsActive())
                 .build();
     }
 
-    public GoldenHour createEntity(GoldenHourDTO.CreateRequest request) {
+    public GoldenHour toEntity(GoldenHourDTO.CreateRequest request) {
         if (request == null) {
             return null;
         }
 
+        Integer startHour = request.getStartHour();
+        Integer endHour = request.getEndHour();
+
+        if (startHour == null && request.getStartTime() != null) {
+            startHour = request.getStartTime().getHour();
+        }
+        if (endHour == null && request.getEndTime() != null) {
+            endHour = request.getEndTime().getHour();
+        }
+
         return GoldenHour.builder()
                 .name(request.getName())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
+                .startHour(startHour)
+                .endHour(endHour)
                 .multiplier(request.getMultiplier())
-                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
+                .isActive(request.getIsActive())
                 .build();
     }
 
-    public void updateEntityFromDTO(GoldenHourDTO.UpdateRequest request, GoldenHour entity) {
-        if (request == null || entity == null) {
+    public void updateEntity(GoldenHour entity, GoldenHourDTO.UpdateRequest request) {
+        if (entity == null || request == null) {
             return;
         }
 
         if (request.getName() != null) {
             entity.setName(request.getName());
         }
-        if (request.getStartTime() != null) {
-            entity.setStartTime(request.getStartTime());
+
+        if (request.getStartHour() != null || request.getStartTime() != null) {
+            Integer startHour = request.getStartHour();
+            if (startHour == null && request.getStartTime() != null) {
+                startHour = request.getStartTime().getHour();
+            }
+            if (startHour != null) {
+                entity.setStartHour(startHour);
+            }
         }
-        if (request.getEndTime() != null) {
-            entity.setEndTime(request.getEndTime());
+
+        if (request.getEndHour() != null || request.getEndTime() != null) {
+            Integer endHour = request.getEndHour();
+            if (endHour == null && request.getEndTime() != null) {
+                endHour = request.getEndTime().getHour();
+            }
+            if (endHour != null) {
+                entity.setEndHour(endHour);
+            }
         }
+
         if (request.getMultiplier() != null) {
             entity.setMultiplier(request.getMultiplier());
         }
         if (request.getIsActive() != null) {
-            entity.setIsActive(request.getIsActive());
+            entity.setActive(request.getIsActive());
         }
-    }
-
-    public void setReward(GoldenHour goldenHour, Reward reward) {
-        goldenHour.setReward(reward);
     }
 }

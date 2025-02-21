@@ -56,7 +56,7 @@ class GoldenHourRepositoryTest {
         reward.setName("Test Reward");
         reward.setQuantity(10);
         reward.setRemainingQuantity(5);
-        reward.setIsActive(true);
+        reward.setActive(true);
         reward.setCreatedAt(now);
         reward.setUpdatedAt(now);
         reward = rewardRepository.save(reward);
@@ -145,7 +145,7 @@ class GoldenHourRepositoryTest {
     }
 
     @Test
-    void updateStatus_ShouldUpdateActiveStatus() {
+    void updateStatus_ShouldUpdateActiveStatusSuccessfully() {
         int updated = goldenHourRepository.updateStatus(morningHour.getId(), false);
 
         assertThat(updated).isEqualTo(1);
@@ -167,23 +167,51 @@ class GoldenHourRepositoryTest {
 
     @Test
     void isGoldenHourActive_ShouldReturnTrue_WhenTimeIsWithinActiveHour() {
+        // Test with LocalDateTime
         LocalDateTime testTime = now.withHour(10).withMinute(30);
-        boolean isActive = goldenHourRepository.isGoldenHourActive(event.getId(), testTime);
-
+        boolean isActive = goldenHourRepository.isGoldenHourActive(reward.getId(), testTime);
         assertThat(isActive).isTrue();
+
+        // Test with hour
+        boolean isActiveHour = goldenHourRepository.isGoldenHourActive(reward.getId(), 10);
+        assertThat(isActiveHour).isTrue();
     }
 
     @Test
     void isGoldenHourActive_ShouldReturnFalse_WhenNoActiveHourExists() {
+        // Test with LocalDateTime
         LocalDateTime testTime = now.withHour(14).withMinute(30);
-        boolean isActive = goldenHourRepository.isGoldenHourActive(event.getId(), testTime);
-
+        boolean isActive = goldenHourRepository.isGoldenHourActive(reward.getId(), testTime);
         assertThat(isActive).isFalse();
+
+        // Test with hour
+        boolean isActiveHour = goldenHourRepository.isGoldenHourActive(reward.getId(), 14);
+        assertThat(isActiveHour).isFalse();
+    }
+
+    @Test
+    void isGoldenHourActive_ShouldHandleMidnightCrossing() {
+        // Test evening hour (22:00 - 01:00)
+        boolean isActiveEvening = goldenHourRepository.isGoldenHourActive(reward.getId(), now.withHour(23));
+        assertThat(isActiveEvening).isTrue();
+
+        // Test after midnight
+        boolean isActiveAfterMidnight = goldenHourRepository.isGoldenHourActive(reward.getId(), now.withHour(0));
+        assertThat(isActiveAfterMidnight).isTrue();
+
+        // Test just before end
+        boolean isActiveBeforeEnd = goldenHourRepository.isGoldenHourActive(reward.getId(), now.withHour(0).withMinute(59));
+        assertThat(isActiveBeforeEnd).isTrue();
+
+        // Test just after end
+        boolean isActiveAfterEnd = goldenHourRepository.isGoldenHourActive(reward.getId(), now.withHour(1).withMinute(1));
+        assertThat(isActiveAfterEnd).isFalse();
     }
 
     @Test
     void findActiveGoldenHoursOrdered_ShouldReturnHoursOrderedByStartTime() {
-        List<GoldenHour> hours = goldenHourRepository.findActiveGoldenHoursOrdered(event.getId());
+        // Pass reward.getId() because the query expects the reward ID
+        List<GoldenHour> hours = goldenHourRepository.findActiveGoldenHoursOrdered(reward.getId());
 
         assertThat(hours).hasSize(2);
         assertThat(hours.get(0).getName()).isEqualTo("Morning Hour");

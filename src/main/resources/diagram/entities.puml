@@ -43,6 +43,36 @@ class Event {
     -LocalDateTime updatedAt
 }
 
+class EventLocation {
+    -Long id
+    -Long eventId
+    -String location
+    -int totalSpins
+    -int remainingSpins
+    -boolean isActive
+    -LocalDateTime createdAt
+    -LocalDateTime updatedAt
+}
+
+class Participant {
+    -Long id
+    -String customerId
+    -String employeeId
+    -String cardNumber
+    -String fullName
+    -String email
+    -String phoneNumber
+    -String name
+    -String province
+    -Long eventId
+    -Long eventLocationId
+    -Long dailySpinLimit
+    -long spinsRemaining
+    -boolean isActive
+    -LocalDateTime createdAt
+    -LocalDateTime updatedAt
+}
+
 class Reward {
     -Long id
     -String name
@@ -58,7 +88,7 @@ class Reward {
 
 class LuckyDrawResult {
     -Long id
-    -Long userId
+    -Long participantId
     -Long eventId
     -Long rewardId
     -LocalDateTime spinTime
@@ -80,10 +110,12 @@ class GoldenHour {
 
 ' Relationships
 User "1" -- "*" Role : has >
-User "1" -- "*" LuckyDrawResult : performs >
+Event "1" -- "*" EventLocation : has >
 Event "1" -- "*" Reward : contains >
 Event "1" -- "*" GoldenHour : has >
 Event "1" -- "*" LuckyDrawResult : tracks >
+EventLocation "1" -- "*" Participant : hosts >
+Participant "1" -- "*" LuckyDrawResult : performs >
 Reward "1" -- "*" LuckyDrawResult : awarded in >
 
 @enduml

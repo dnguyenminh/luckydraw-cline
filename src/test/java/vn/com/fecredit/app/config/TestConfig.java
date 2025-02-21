@@ -16,24 +16,17 @@ import jakarta.persistence.EntityManagerFactory;
 @TestConfiguration
 @EnableTransactionManagement
 @EnableJpaRepositories(basePackages = "vn.com.fecredit.app.repository")
-@ComponentScan(
-    basePackages = "vn.com.fecredit.app.repository",
-    excludeFilters = @ComponentScan.Filter(
-        type = FilterType.REGEX,
-        pattern = "vn\\.com\\.fecredit\\.app\\.service\\..*"
-    )
-)
 public class TestConfig {
 
-    @Bean
-    public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory) {
-        JpaTransactionManager transactionManager = new JpaTransactionManager();
-        transactionManager.setEntityManagerFactory(entityManagerFactory);
-        return transactionManager;
-    }
-
-    @Bean
-    public PlatformTransactionManager dataSourceTransactionManager(DataSource dataSource) {
-        return new DataSourceTransactionManager(dataSource);
-    }
+//    @Bean
+//    public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory) {
+//        JpaTransactionManager transactionManager = new JpaTransactionManager();
+//        transactionManager.setEntityManagerFactory(entityManagerFactory);
+//        return transactionManager;
+//    }
+//
+//    @Bean
+//    public PlatformTransactionManager dataSourceTransactionManager(DataSource dataSource) {
+//        return new DataSourceTransactionManager(dataSource);
+//    }
 }

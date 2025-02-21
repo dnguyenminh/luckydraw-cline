@@ -23,13 +23,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "participants")
+@Table(name = "event_locations")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Participant {
+public class EventLocation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,55 +39,31 @@ public class Participant {
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @ManyToOne
-    @JoinColumn(name = "event_location_id")
-    private EventLocation eventLocation;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "full_name")
-    private String fullName;
+    @Column(name = "location")
+    private String location;
 
-    @Column(name = "email")
-    private String email;
+    @Column(name = "total_spins", nullable = false)
+    @Builder.Default
+    private Long totalSpins = 0L;
 
-    @Column(name = "phone_number")
-    private String phoneNumber;
-
-    @Column(name = "province")
-    private String province;
-
-    @Column(name = "customer_id")
-    private String customerId;
-
-    @Column(name = "employee_id")
-    private String employeeId;
-
-    @Column(name = "card_number")
-    private String cardNumber;
-
-    @Column(name = "spins_remaining", nullable = false)
-    private Long spinsRemaining = 0L; // default value set to 0
-
-    @Column(name = "daily_spin_limit")
-    private Long dailySpinLimit;
+    @Column(name = "remaining_spins", nullable = false)
+    @Builder.Default
+    private Long remainingSpins = 0L;
 
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
 
-    @Column(name = "is_eligible_for_spin")
+    @Column(name = "version")
     @Builder.Default
-    private Boolean isEligibleForSpin = true;
+    private Long version = 0L;
 
-    @OneToMany(mappedBy = "participant")
+    @OneToMany(mappedBy = "eventLocation")
     @Builder.Default
-    private Set<SpinHistory> spinHistories = new HashSet<>();
+    private Set<Participant> participants = new HashSet<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -103,13 +79,5 @@ public class Participant {
 
     public void setActive(boolean active) {
         this.isActive = active;
-    }
-
-    public boolean isEligibleForSpin() {
-        return Boolean.TRUE.equals(isEligibleForSpin);
-    }
-
-    public void setEligibleForSpin(boolean eligible) {
-        this.isEligibleForSpin = eligible;
     }
 }
