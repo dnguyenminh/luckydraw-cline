@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -49,6 +50,7 @@ public class Reward {
     @Column(name = "code")
     private String code;
 
+    @NotNull(message = "Reward name must not be null")
     @Column(name = "name", nullable = false)
     private String name;
 

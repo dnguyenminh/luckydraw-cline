@@ -114,7 +114,7 @@ class GoldenHourServiceTest {
     void getGoldenHourMultiplier_WithActiveGoldenHour_ShouldReturnMultiplier() {
         // Given
         LocalDateTime now = LocalDateTime.now();
-        when(goldenHourRepository.findActiveGoldenHour(eq(1L), any(LocalDateTime.class)))
+        when(goldenHourRepository.findActiveGoldenHourByRewardId(eq(1L), any(LocalDateTime.class)))
             .thenReturn(Optional.of(goldenHour));
 
         // When
@@ -128,7 +128,7 @@ class GoldenHourServiceTest {
     void getGoldenHourMultiplier_WithNoActiveGoldenHour_ShouldReturnDefaultMultiplier() {
         // Given
         LocalDateTime now = LocalDateTime.now();
-        when(goldenHourRepository.findActiveGoldenHour(eq(1L), any(LocalDateTime.class)))
+        when(goldenHourRepository.findActiveGoldenHourByRewardId(eq(1L), any(LocalDateTime.class)))
             .thenReturn(Optional.empty());
 
         // When

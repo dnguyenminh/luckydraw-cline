@@ -36,9 +36,22 @@ public class GoldenHourService {
         return goldenHourRepository.findByIdWithDetails(id);
     }
 
-    public Double getGoldenHourMultiplier(Long rewardId, Long userId, LocalDateTime currentTime) {
-        Optional<GoldenHour> activeGoldenHour = goldenHourRepository.findActiveGoldenHour(rewardId, currentTime);
-        return activeGoldenHour.map(GoldenHour::getMultiplier).orElse(1.0);
+    public Double getGoldenHourMultiplier(Long rewardId, Long goldenHourId, LocalDateTime currentTime) {
+        // If a specific golden hour is requested, check it first
+        if (goldenHourId != null) {
+            return goldenHourRepository.findByIdWithDetails(goldenHourId)
+                .filter(GoldenHour::isActive)
+                .filter(gh -> gh.getReward().getId().equals(rewardId))
+                .filter(gh -> !currentTime.isBefore(gh.getStartTime()))
+                .filter(gh -> !currentTime.isAfter(gh.getEndTime()))
+                .map(GoldenHour::getMultiplier)
+                .orElse(1.0);
+        }
+        
+        // Otherwise find any active golden hour for the reward
+        return goldenHourRepository.findActiveGoldenHourByRewardId(rewardId, currentTime)
+            .map(GoldenHour::getMultiplier)
+            .orElse(1.0);
     }
 
     public boolean isGoldenHourActive(Long rewardId, LocalDateTime dateTime) {

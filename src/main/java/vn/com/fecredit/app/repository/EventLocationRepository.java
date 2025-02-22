@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -33,4 +34,11 @@ public interface EventLocationRepository extends JpaRepository<EventLocation, Lo
     
     @Query("SELECT el FROM EventLocation el JOIN FETCH el.event WHERE el.id = :id")
     Optional<EventLocation> findByIdWithEvent(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE event_locations " +
+                  "SET remaining_spins = remaining_spins - 1 " +
+                  "WHERE id = :id AND remaining_spins > 0",
+           nativeQuery = true)
+    int decrementSpins(@Param("id") Long id);
 }

@@ -32,9 +32,11 @@ public class ParticipantMapper {
                 .phoneNumber(getOrEmpty(entity.getPhoneNumber()))
                 .name(getOrEmpty(entity.getName()))
                 .province(getOrEmpty(entity.getProvince()))
+                .userId(entity.getUser() != null ? entity.getUser().getId() : null)
                 .isActive(entity.getIsActive())
                 .spinsRemaining(entity.getSpinsRemaining())
                 .dailySpinLimit(entity.getDailySpinLimit())
+                .isEligibleForSpin(entity.getIsEligibleForSpin())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt());
 
@@ -49,7 +51,8 @@ public class ParticipantMapper {
         // Add event location information if available
         if (eventLocation != null) {
             builder.eventLocationId(eventLocation.getId())
-                   .location(eventLocation.getLocation())
+                   .eventLocationName(getOrEmpty(eventLocation.getName()))
+                   .location(getOrEmpty(eventLocation.getLocation()))
                    .locationTotalSpins(eventLocation.getTotalSpins())
                    .locationRemainingSpins(eventLocation.getRemainingSpins());
         }
@@ -73,6 +76,7 @@ public class ParticipantMapper {
         entity.setIsActive(dto.isActive());
         entity.setDailySpinLimit(dto.getDailySpinLimit());
         entity.setSpinsRemaining(dto.getSpinsRemaining());
+        entity.setIsEligibleForSpin(dto.isEligibleForSpin());
         
         if (dto.getUpdatedAt() != null) {
             entity.setUpdatedAt(dto.getUpdatedAt());

@@ -1,9 +1,12 @@
 package vn.com.fecredit.app.service;
 
 import org.springframework.stereotype.Service;
+import java.util.Optional;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataAccessException;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.dto.EventLocationDTO;
 import vn.com.fecredit.app.exception.ResourceNotFoundException;
 import vn.com.fecredit.app.mapper.EventLocationMapper;
@@ -75,14 +78,13 @@ public class EventLocationService {
 
     @Transactional
     public boolean allocateSpin(Long id) {
-        EventLocation location = locationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("EventLocation not found with id: " + id));
-
-        if (location.getRemainingSpins() > 0) {
-            location.setRemainingSpins(location.getRemainingSpins() - 1);
-            locationRepository.save(location);
-            return true;
+        try {
+            int updatedRows = locationRepository.decrementSpins(id);
+            locationRepository.flush(); // Ensure changes are written to DB
+            return updatedRows > 0;
+        } catch (Exception e) {
+//            log.error("Error while allocating spin for location {}: {}", id, e.getMessage());
+            return false;
         }
-        return false;
     }
 }

@@ -16,6 +16,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -57,10 +58,11 @@ public class EventLocation {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Version
     @Column(name = "version")
     @Builder.Default
     private Long version = 0L;
-
+    
     @OneToMany(mappedBy = "eventLocation")
     @Builder.Default
     private Set<Participant> participants = new HashSet<>();

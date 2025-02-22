@@ -71,11 +71,11 @@ class GoldenHourTransitionTest {
                 .build();
 
         // when(goldenHourRepository.findById(1L)).thenReturn(Optional.of(goldenHour));
-        when(goldenHourRepository.findActiveGoldenHour(eq(testEvent.getId()), eq(beforeStart))).thenReturn(Optional.empty());
-        when(goldenHourRepository.findActiveGoldenHour(eq(testEvent.getId()), eq(atStart))).thenReturn(Optional.of(goldenHour));
-        when(goldenHourRepository.findActiveGoldenHour(eq(testEvent.getId()), eq(duringPeriod))).thenReturn(Optional.of(goldenHour));
-        when(goldenHourRepository.findActiveGoldenHour(eq(testEvent.getId()), eq(atEnd))).thenReturn(Optional.empty());
-        when(goldenHourRepository.findActiveGoldenHour(eq(testEvent.getId()), eq(afterEnd))).thenReturn(Optional.empty());
+        when(goldenHourRepository.findActiveGoldenHourByRewardId(eq(testEvent.getId()), eq(beforeStart))).thenReturn(Optional.empty());
+        when(goldenHourRepository.findActiveGoldenHourByRewardId(eq(testEvent.getId()), eq(atStart))).thenReturn(Optional.of(goldenHour));
+        when(goldenHourRepository.findActiveGoldenHourByRewardId(eq(testEvent.getId()), eq(duringPeriod))).thenReturn(Optional.of(goldenHour));
+        when(goldenHourRepository.findActiveGoldenHourByRewardId(eq(testEvent.getId()), eq(atEnd))).thenReturn(Optional.empty());
+        when(goldenHourRepository.findActiveGoldenHourByRewardId(eq(testEvent.getId()), eq(afterEnd))).thenReturn(Optional.empty());
 
         // When & Then
         // Test with no specific golden hour (null goldenHourId)
@@ -101,8 +101,8 @@ class GoldenHourTransitionTest {
                 .reward(testReward)
                 .build();
 
-        when(goldenHourRepository.findById(1L)).thenReturn(Optional.of(inactiveGoldenHour));
-        when(goldenHourRepository.findActiveGoldenHour(eq(testEvent.getId()), any(LocalDateTime.class))).thenReturn(Optional.empty());
+//        when(goldenHourRepository.findById(1L)).thenReturn(Optional.of(inactiveGoldenHour));
+//        when(goldenHourRepository.findActiveGoldenHour(eq(testEvent.getId()), any(LocalDateTime.class))).thenReturn(Optional.empty());
 
         // When & Then
         assertThat(goldenHourService.getGoldenHourMultiplier(testEvent.getId(), 1L, activeTime)).isEqualTo(1.0);
@@ -134,9 +134,9 @@ class GoldenHourTransitionTest {
                 .reward(testReward)
                 .build();
 
-        when(goldenHourRepository.findById(1L)).thenReturn(Optional.of(firstGoldenHour));
-        when(goldenHourRepository.findById(2L)).thenReturn(Optional.of(secondGoldenHour));
-        when(goldenHourRepository.findActiveGoldenHour(eq(testEvent.getId()), eq(overlapTime))).thenReturn(Optional.of(firstGoldenHour));
+        when(goldenHourRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(firstGoldenHour));
+        when(goldenHourRepository.findByIdWithDetails(2L)).thenReturn(Optional.of(secondGoldenHour));
+        when(goldenHourRepository.findActiveGoldenHourByRewardId(eq(testEvent.getId()), eq(overlapTime))).thenReturn(Optional.of(firstGoldenHour));
 
         // When & Then
         assertThat(goldenHourService.getGoldenHourMultiplier(testEvent.getId(), 1L, overlapTime)).isEqualTo(2.0);

@@ -72,6 +72,7 @@ public class Participant {
     private String cardNumber;
 
     @Column(name = "spins_remaining", nullable = false)
+    @Builder.Default
     private Long spinsRemaining = 0L; // default value set to 0
 
     @Column(name = "daily_spin_limit")
@@ -97,19 +98,27 @@ public class Participant {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean active) {
+        this.isActive = active;
+    }
+
+    public Boolean getIsEligibleForSpin() {
+        return isEligibleForSpin;
+    }
+
+    public void setIsEligibleForSpin(Boolean eligible) {
+        this.isEligibleForSpin = eligible;
+    }
+
     public boolean isActive() {
         return Boolean.TRUE.equals(isActive);
     }
 
-    public void setActive(boolean active) {
-        this.isActive = active;
-    }
-
     public boolean isEligibleForSpin() {
         return Boolean.TRUE.equals(isEligibleForSpin);
-    }
-
-    public void setEligibleForSpin(boolean eligible) {
-        this.isEligibleForSpin = eligible;
     }
 }

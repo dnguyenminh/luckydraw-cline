@@ -22,7 +22,8 @@ public interface GoldenHourRepository extends JpaRepository<GoldenHour, Long> {
     List<GoldenHour> findByRewardIdAndIsActiveTrue(Long rewardId);
 
     @Query("SELECT gh FROM GoldenHour gh " +
-           "LEFT JOIN FETCH gh.reward " +
+           "LEFT JOIN FETCH gh.reward r " +
+           "LEFT JOIN FETCH r.event " +
            "WHERE gh.id = :id")
     Optional<GoldenHour> findByIdWithDetails(@Param("id") Long id);
 
@@ -74,6 +75,7 @@ public interface GoldenHourRepository extends JpaRepository<GoldenHour, Long> {
     int updateStatus(@Param("id") Long id, @Param("status") boolean status);
 
     @Query("SELECT gh FROM GoldenHour gh " +
+           "LEFT JOIN FETCH gh.reward r " +
            "WHERE gh.event.id = :eventId " +
            "AND gh.isActive = true " +
            "AND (" +
@@ -81,4 +83,14 @@ public interface GoldenHourRepository extends JpaRepository<GoldenHour, Long> {
                "OR (gh.startTime > gh.endTime AND (:testTime >= gh.startTime OR :testTime <= gh.endTime))" +
            ")")
     Optional<GoldenHour> findActiveGoldenHour(@Param("eventId") Long eventId, @Param("testTime") LocalDateTime testTime);
+
+    @Query("SELECT gh FROM GoldenHour gh " +
+           "LEFT JOIN FETCH gh.reward r " +
+           "WHERE gh.reward.id = :rewardId " +
+           "AND gh.isActive = true " +
+           "AND (" +
+               "(:testTime BETWEEN gh.startTime AND gh.endTime) " +
+               "OR (gh.startTime > gh.endTime AND (:testTime >= gh.startTime OR :testTime <= gh.endTime))" +
+           ")")
+    Optional<GoldenHour> findActiveGoldenHourByRewardId(@Param("rewardId") Long rewardId, @Param("testTime") LocalDateTime testTime);
 }

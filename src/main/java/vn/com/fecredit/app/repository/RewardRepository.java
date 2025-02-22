@@ -39,6 +39,18 @@ public interface RewardRepository extends JpaRepository<Reward, Long> {
            "ORDER BY r.probability DESC")
     List<Reward> findAvailableRewardsOrderByProbability(@Param("eventId") Long eventId);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "WITH locked AS (" +
+                  "  SELECT id FROM rewards " +
+                  "  WHERE id = :id AND remaining_quantity > 0 " +
+                  "  FOR UPDATE" +
+                  ") " +
+                  "UPDATE rewards r " +
+                  "SET remaining_quantity = remaining_quantity - 1 " +
+                  "WHERE r.id IN (SELECT id FROM locked)",
+           nativeQuery = true)
+    int decrementRemainingQuantity(@Param("id") Long id);
+
     @Modifying
     @Query("UPDATE Reward r SET r.remainingQuantity = :quantity WHERE r.id = :id")
     int updateRemainingQuantity(@Param("id") Long id, @Param("quantity") int quantity);
