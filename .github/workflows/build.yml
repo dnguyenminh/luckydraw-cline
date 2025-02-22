@@ -56,10 +56,9 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/test_lucky_draw
-          SPRING_DATASOURCE_USERNAME: postgres
-          SPRING_DATASOURCE_PASSWORD: postgres
+        run: ./gradlew flywayClean flywayMigrate -Dspring.profiles.active=test
+
+      - name: Build with Gradle
         run: ./gradlew build --stacktrace
 
       - name: Upload Test Report
