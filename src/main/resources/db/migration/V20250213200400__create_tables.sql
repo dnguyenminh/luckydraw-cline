@@ -1,2 +1,0 @@
--- Migration is kept for version history but content moved to individual migration files
--- See V20250211082500 through V20250211082800 for actual table creation scripts
