@@ -4,9 +4,11 @@
 The lucky draw system is designed with a layered architecture focusing on:
 - Clean separation of concerns
 - Efficient reward selection algorithm
-- Location-based filtering
+- Location and province-based filtering
 - Thread safety for concurrent access
 - Performance optimization for large numbers of spins
+- Daily spin limit management
+- Golden hour multiplier system
 
 ## Entity Relationships
 ```plantuml
@@ -15,10 +17,12 @@ The lucky draw system is designed with a layered architecture focusing on:
 Located in `src/main/resources/diagram/entities.puml`
 
 The system contains these main entities:
-- **User**: Participants in lucky draw events
+- **User**: System users with role-based access
 - **Event**: Lucky draw events with time periods
-- **Reward**: Prizes that can be won, with location restrictions
-- **LuckyDrawResult**: Records of spins and wins
+- **EventLocation**: Physical locations with spin quotas and daily limits
+- **Participant**: Event participants with daily spin limits
+- **Reward**: Prizes that can be won, with location and province restrictions
+- **LuckyDrawResult**: Records of spins and wins with unique spin codes
 - **GoldenHour**: Special periods with modified win rates
 
 ## Service Layer
@@ -30,22 +34,49 @@ Located in `src/main/resources/diagram/services.puml`
 Key services include:
 - **RewardSelectionService**: Core logic for selecting rewards using Fisher-Yates Reservoir Sampling
 - **EventService**: Manages active events and their lifecycle
+- **EventLocationService**: Handles location-specific spin quotas and daily limits
+- **ParticipantService**: Manages participant registration and spin limits
 - **RewardService**: Handles reward inventory and validation
-- **LuckyDrawResultService**: Records spin results and history
-- **GoldenHourService**: Manages special promotion periods
+- **LuckyDrawResultService**: Records spin results with unique spin codes
+- **GoldenHourService**: Manages special promotion periods with win multipliers
 
-## Selection Flow
+## Key Workflows
+
+### Reward Selection Flow
 ```plantuml
 !include src/main/resources/diagram/reward_selection_flow.puml
 ```
 Located in `src/main/resources/diagram/reward_selection_flow.puml`
 
-The reward selection process:
-1. Validate event and user
-2. Filter rewards by location
-3. Perform reservoir sampling to select positions
-4. Generate random spin
-5. Check for win and record result
+### Participant Registration
+```plantuml
+!include src/main/resources/diagram/participant_registration_flow.puml
+```
+Located in `src/main/resources/diagram/participant_registration_flow.puml`
+
+### Event Creation
+```plantuml
+!include src/main/resources/diagram/event_creation_flow.puml
+```
+Located in `src/main/resources/diagram/event_creation_flow.puml`
+
+### Golden Hour Management
+```plantuml
+!include src/main/resources/diagram/golden_hour_management_flow.puml
+```
+Located in `src/main/resources/diagram/golden_hour_management_flow.puml`
+
+### Daily Reset Process
+```plantuml
+!include src/main/resources/diagram/participant_daily_reset_flow.puml
+```
+Located in `src/main/resources/diagram/participant_daily_reset_flow.puml`
+
+### Location Management
+```plantuml
+!include src/main/resources/diagram/event_location_management_flow.puml
+```
+Located in `src/main/resources/diagram/event_location_management_flow.puml`
 
 ## Algorithm Details
 
@@ -55,12 +86,27 @@ Used for efficient position selection:
 - Uniform random distribution
 - No need to store all positions
 - Efficient for large numbers of spins
+- Supports win rate modification during golden hours
 
-### Location Filtering
+### Location and Province Filtering
 Optimized by:
 - Early filtering before position assignment
+- Two-level filtering: location then province
+- Province caching for performance
 - Prevents wasting memory on inaccessible rewards
 - Improves overall performance
+
+### Spin Code Generation
+- Unique code per spin attempt
+- Used for result verification
+- Prevents duplicate submissions
+- Enables result tracking
+
+### Daily Limit Management
+- Configurable per location and participant
+- Automatic midnight reset
+- Concurrent access protection
+- Prevents limit bypassing
 
 ## Viewing the Diagrams
 
@@ -77,5 +123,7 @@ The system is optimized for:
 - Fast response times
 - Memory efficiency
 - Thread safety
+- Concurrent daily resets
+- High-volume golden hour periods
 
-See `RewardSelectionServicePerformanceTest` for benchmark results.
+See `RewardSelectionServicePerformanceTest` and `EventLocationServiceConcurrencyTest` for benchmark results.

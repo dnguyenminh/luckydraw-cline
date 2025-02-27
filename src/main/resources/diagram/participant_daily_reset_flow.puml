@@ -1,0 +1,46 @@
+@startuml Participant Daily Reset Flow
+
+' Style settings
+skinparam {
+    ArrowColor #666666
+    BackgroundColor white
+    ActivityBackgroundColor white
+    ActivityBorderColor #666666
+    ActivityDiamondBackgroundColor white
+    ActivityDiamondBorderColor #666666
+}
+
+|Scheduler|
+start
+:Trigger daily reset at midnight;
+
+|EventService|
+:Get active event;
+if (Active event exists?) is (no) then
+    :Log no active event;
+    end
+endif
+
+|EventLocationService|
+:Reset daily spins for all locations;
+
+|ParticipantService|
+:Reset daily spins for all participants;
+fork
+    :Update spins_remaining to daily_spin_limit;
+fork again
+    :Reset participants' daily counters;
+end fork
+
+|EventLocationRepository|
+:Reset location daily spins;
+
+|ParticipantRepository|
+:Reset participant daily spins;
+
+|Scheduler|
+:Log reset completion;
+:Schedule next reset;
+stop
+
+@enduml

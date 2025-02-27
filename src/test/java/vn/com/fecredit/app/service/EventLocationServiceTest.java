@@ -1,117 +1,169 @@
 package vn.com.fecredit.app.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
 import vn.com.fecredit.app.dto.EventLocationDTO;
+import vn.com.fecredit.app.entity.Event;
+import vn.com.fecredit.app.entity.EventLocation;
+import vn.com.fecredit.app.exception.ResourceNotFoundException;
 import vn.com.fecredit.app.mapper.EventLocationMapper;
-import vn.com.fecredit.app.model.Event;
-import vn.com.fecredit.app.model.EventLocation;
 import vn.com.fecredit.app.repository.EventLocationRepository;
 import vn.com.fecredit.app.repository.EventRepository;
 
-@ExtendWith(MockitoExtension.class)
 class EventLocationServiceTest {
 
     @Mock
-    private EventLocationRepository locationRepository;
+    private EventLocationRepository eventLocationRepository;
 
     @Mock
     private EventRepository eventRepository;
 
     @Mock
-    private EventLocationMapper mapper;
+    private EventLocationMapper eventLocationMapper;
 
     @InjectMocks
-    private EventLocationService service;
+    private EventLocationService eventLocationService;
 
-    private Event event;
-    private EventLocation location;
-    private EventLocationDTO locationDTO;
+    private Event testEvent;
+    private EventLocation testLocation;
+    private EventLocationDTO.CreateRequest createRequest;
+    private EventLocationDTO.UpdateRequest updateRequest;
+    private EventLocationDTO.EventLocationResponse locationResponse;
 
     @BeforeEach
     void setUp() {
-        event = Event.builder()
-            .id(1L)
-            .name("Test Event")
-            .build();
+        MockitoAnnotations.openMocks(this);
 
-        location = EventLocation.builder()
-            .id(1L)
-            .event(event)
-            .name("Test Location")
-            .totalSpins(100L)
-            .remainingSpins(50L)
-            .isActive(true)
-            .build();
+        testEvent = Event.builder()
+                .id(1L)
+                .name("Test Event")
+                .build();
 
-        locationDTO = EventLocationDTO.builder()
-            .id(1L)
-            .eventId(1L)
-            .name("Test Location")
-            .totalSpins(100L)
-            .remainingSpins(50L)
-            .active(true)
-            .build();
+        testLocation = EventLocation.builder()
+                .id(1L)
+                .eventId(testEvent.getId())
+                .name("Test Location")
+                .addressLine1("123 Test St")
+                .addressLine2("Suite 456")
+                .province("Test Province")
+                .district("Test District")
+                .postalCode("12345")
+                .totalSpins(100)
+                .remainingSpins(100)
+                .dailySpinLimit(10)
+                .winProbabilityMultiplier(1.0)
+                .sortOrder(1)
+                .active(true)
+                .event(testEvent)
+                .build();
+
+        createRequest = EventLocationDTO.CreateRequest.builder()
+                .eventId(testEvent.getId())
+                .name("Test Location")
+                .addressLine1("123 Test St")
+                .addressLine2("Suite 456")
+                .province("Test Province")
+                .district("Test District")
+                .postalCode("12345")
+                .totalSpins(100)
+                .dailySpinLimit(10)
+                .winProbabilityMultiplier(1.0)
+                .sortOrder(1)
+                .active(true)
+                .build();
+
+        updateRequest = EventLocationDTO.UpdateRequest.builder()
+                .name("Updated Location")
+                .addressLine1("Updated Address")
+                .province("Updated Province")
+                .district("Updated District")
+                .totalSpins(200)
+                .dailySpinLimit(20)
+                .active(true)
+                .build();
+
+        locationResponse = EventLocationDTO.EventLocationResponse.builder()
+                .id(1L)
+                .eventId(testEvent.getId())
+                .eventName(testEvent.getName())
+                .name(testLocation.getName())
+                .addressLine1(testLocation.getAddressLine1())
+                .province(testLocation.getProvince())
+                .district(testLocation.getDistrict())
+                .totalSpins(testLocation.getTotalSpins())
+                .remainingSpins(testLocation.getRemainingSpins())
+                .dailySpinLimit(testLocation.getDailySpinLimit())
+                .active(testLocation.isActive())
+                .build();
     }
 
     @Test
-    void findById_ShouldReturnLocation() {
-        when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
-        when(mapper.toDTO(location)).thenReturn(locationDTO);
+    void createEventLocation_Success() {
+        when(eventRepository.findById(testEvent.getId())).thenReturn(Optional.of(testEvent));
+        when(eventLocationMapper.createEntityFromRequest(createRequest)).thenReturn(testLocation);
+        when(eventLocationRepository.save(any(EventLocation.class))).thenReturn(testLocation);
+        when(eventLocationMapper.toResponse(testLocation)).thenReturn(locationResponse);
 
-        EventLocationDTO result = service.findById(1L);
+        EventLocationDTO.EventLocationResponse result = eventLocationService.createEventLocation(createRequest);
 
         assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(location.getId());
-        assertThat(result.getName()).isEqualTo(location.getName());
+        assertThat(result.getId()).isEqualTo(locationResponse.getId());
+        assertThat(result.getName()).isEqualTo(locationResponse.getName());
+        verify(eventLocationRepository, times(1)).save(any(EventLocation.class));
     }
 
     @Test
-    void create_ShouldReturnNewLocation() {
-        when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
-        when(mapper.toEntity(locationDTO, event)).thenReturn(location);
-        when(locationRepository.save(any(EventLocation.class))).thenReturn(location);
-        when(mapper.toDTO(location)).thenReturn(locationDTO);
+    void updateEventLocation_Success() {
+        when(eventLocationRepository.findById(testLocation.getId())).thenReturn(Optional.of(testLocation));
+        when(eventLocationRepository.save(any(EventLocation.class))).thenReturn(testLocation);
+        when(eventLocationMapper.toResponse(testLocation)).thenReturn(locationResponse);
 
-        EventLocationDTO result = service.create(locationDTO);
+        EventLocationDTO.EventLocationResponse result = eventLocationService.updateEventLocation(1L, updateRequest);
 
         assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(locationDTO.getId());
-        assertThat(result.getName()).isEqualTo(locationDTO.getName());
+        verify(eventLocationRepository, times(1)).save(any(EventLocation.class));
+        verify(eventLocationMapper, times(1)).updateEntityFromRequest(any(EventLocation.class), any(EventLocationDTO.UpdateRequest.class));
     }
 
     @Test
-    void update_ShouldReturnUpdatedLocation() {
-        EventLocationDTO updateDTO = EventLocationDTO.builder()
-            .id(1L)
-            .eventId(1L)
-            .name("Updated Location")
-            .totalSpins(200L)
-            .remainingSpins(150L)
-            .active(false)
-            .build();
+    void deleteEventLocation_Success() {
+        when(eventLocationRepository.existsById(1L)).thenReturn(true);
 
-        when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
-        when(locationRepository.save(any(EventLocation.class))).thenReturn(location);
-        when(mapper.toDTO(location)).thenReturn(updateDTO);
+        eventLocationService.deleteEventLocation(1L);
 
-        EventLocationDTO result = service.update(1L, updateDTO);
+        verify(eventLocationRepository, times(1)).deleteById(1L);
+    }
 
-        assertThat(result).isNotNull();
-        assertThat(result.getName()).isEqualTo(updateDTO.getName());
-        assertThat(result.getTotalSpins()).isEqualTo(updateDTO.getTotalSpins());
-        assertThat(result.getRemainingSpins()).isEqualTo(updateDTO.getRemainingSpins());
-        assertThat(result.isActive()).isEqualTo(updateDTO.isActive());
+    @Test
+    void deleteEventLocation_NotFound() {
+        when(eventLocationRepository.existsById(1L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            eventLocationService.deleteEventLocation(1L);
+        });
+    }
+
+    @Test
+    void decrementRemainingSpins_Success() {
+        when(eventLocationRepository.findById(1L)).thenReturn(Optional.of(testLocation));
+        when(eventLocationRepository.save(any(EventLocation.class))).thenReturn(testLocation);
+
+        eventLocationService.decrementRemainingSpins(1L);
+
+        verify(eventLocationRepository, times(1)).save(any(EventLocation.class));
+        assertThat(testLocation.getRemainingSpins()).isEqualTo(99);
     }
 }

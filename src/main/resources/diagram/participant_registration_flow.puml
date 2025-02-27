@@ -1,0 +1,52 @@
+@startuml Participant Registration Flow
+
+' Style settings
+skinparam {
+    ArrowColor #666666
+    BackgroundColor white
+    ActivityBackgroundColor white
+    ActivityBorderColor #666666
+    ActivityDiamondBackgroundColor white
+    ActivityDiamondBorderColor #666666
+}
+
+|Client|
+start
+:Submit participant registration;
+
+|EventService|
+:Find active event;
+if (Event exists?) is (no) then
+    :Return no active event error;
+    end
+endif
+
+|EventLocationService|
+:Validate location exists;
+if (Valid location?) is (no) then
+    :Return invalid location error;
+    end
+endif
+:Get daily spin limit;
+
+|ParticipantService|
+:Check existing registration;
+if (Already registered?) is (yes) then
+    :Return duplicate registration error;
+    end
+endif
+
+:Create new participant with:
+- Customer ID
+- Event ID
+- Location
+- Daily spin limit
+- Contact info;
+
+:Save participant;
+
+|Client|
+:Return registration confirmation;
+stop
+
+@enduml

@@ -1,17 +1,17 @@
 package vn.com.fecredit.app.dto;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Set;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import vn.com.fecredit.app.validation.ValidTimeRange;
+import vn.com.fecredit.app.enums.RecurringDay;
 
 @Data
 @Builder
@@ -20,113 +20,106 @@ import vn.com.fecredit.app.validation.ValidTimeRange;
 public class GoldenHourDTO {
     private Long id;
     private Long eventId;
+    private String eventName;
     private Long rewardId;
-    private String name;
-    private Integer startHour;
-    private Integer endHour;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
-    private Double multiplier;
+    private String rewardName;
+    private LocalTime startTime;
+    private LocalTime endTime;
+    private Set<RecurringDay> activeDays;
+    private Double probabilityMultiplier;
     private Boolean isActive;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
-    public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
-        if (startTime != null) {
-            this.startHour = startTime.getHour();
-        }
-    }
-
-    public void setEndTime(LocalDateTime endTime) {
-        this.endTime = endTime;
-        if (endTime != null) {
-            this.endHour = endTime.getHour();
-        }
-    }
+    private Long version;
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @ValidTimeRange(message = "End time must be after start time")
     public static class CreateRequest {
-        @NotBlank(message = "Name is required")
-        private String name;
-        
-        @Min(value = 0, message = "Start hour must be between 0 and 23")
-        @Max(value = 23, message = "Start hour must be between 0 and 23")
-        private Integer startHour;
-        
-        @Min(value = 0, message = "End hour must be between 0 and 23")
-        @Max(value = 23, message = "End hour must be between 0 and 23")
-        private Integer endHour;
-        
+        @NotNull(message = "Event ID is required")
+        private Long eventId;
+
+        @NotNull(message = "Reward ID is required")
+        private Long rewardId;
+
         @NotNull(message = "Start time is required")
-        private LocalDateTime startTime;
-        
+        private LocalTime startTime;
+
         @NotNull(message = "End time is required")
-        private LocalDateTime endTime;
-        
-        @NotNull(message = "Multiplier is required")
-        @Positive(message = "Multiplier must be positive")
-        private Double multiplier;
+        private LocalTime endTime;
 
-        @Builder.Default
-        private Boolean isActive = true;
+        @NotNull(message = "Active days are required")
+        private Set<RecurringDay> activeDays;
 
-        public void setStartTime(LocalDateTime startTime) {
-            this.startTime = startTime;
-            if (startTime != null) {
-                this.startHour = startTime.getHour();
-            }
-        }
+        @NotNull(message = "Probability multiplier is required")
+        @DecimalMin(value = "1.0", message = "Probability multiplier must be at least 1.0")
+        @DecimalMax(value = "10.0", message = "Probability multiplier cannot exceed 10.0")
+        private Double probabilityMultiplier;
 
-        public void setEndTime(LocalDateTime endTime) {
-            this.endTime = endTime;
-            if (endTime != null) {
-                this.endHour = endTime.getHour();
-            }
-        }
+        private Boolean isActive;
     }
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @ValidTimeRange(message = "End time must be after start time")
     public static class UpdateRequest {
-        private String name;
-        
-        @Min(value = 0, message = "Start hour must be between 0 and 23")
-        @Max(value = 23, message = "Start hour must be between 0 and 23")
-        private Integer startHour;
-        
-        @Min(value = 0, message = "End hour must be between 0 and 23")
-        @Max(value = 23, message = "End hour must be between 0 and 23")
-        private Integer endHour;
-        
-        private LocalDateTime startTime;
-        
-        private LocalDateTime endTime;
-        
-        @Positive(message = "Multiplier must be positive")
-        private Double multiplier;
-        
+        private LocalTime startTime;
+        private LocalTime endTime;
+        private Set<RecurringDay> activeDays;
+
+        @DecimalMin(value = "1.0", message = "Probability multiplier must be at least 1.0")
+        @DecimalMax(value = "10.0", message = "Probability multiplier cannot exceed 10.0")
+        private Double probabilityMultiplier;
+
         private Boolean isActive;
+    }
 
-        public void setStartTime(LocalDateTime startTime) {
-            this.startTime = startTime;
-            if (startTime != null) {
-                this.startHour = startTime.getHour();
-            }
-        }
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GoldenHourSchedule {
+        private Long id;
+        private LocalTime startTime;
+        private LocalTime endTime;
+        private Set<RecurringDay> activeDays;
+        private String rewardName;
+        private Double baseWinProbability;
+        private Double effectiveProbability;
+        private Boolean isActiveNow;
+        private Long timeUntilNext;
+        private LocalDateTime nextOccurrence;
+    }
 
-        public void setEndTime(LocalDateTime endTime) {
-            this.endTime = endTime;
-            if (endTime != null) {
-                this.endHour = endTime.getHour();
-            }
-        }
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GoldenHourStatistics {
+        private Long id;
+        private String eventName;
+        private String rewardName;
+        private Integer totalSpins;
+        private Integer winningSpins;
+        private Double winRate;
+        private Double averageWinProbability;
+        private LocalDateTime lastSpinTime;
+        private Double effectivenessRatio;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ActiveGoldenHour {
+        private Long id;
+        private String eventName;
+        private String rewardName;
+        private LocalTime startTime;
+        private LocalTime endTime;
+        private Double probabilityMultiplier;
+        private Double currentWinProbability;
+        private Long remainingTime;
+        private Integer participantCount;
     }
 }

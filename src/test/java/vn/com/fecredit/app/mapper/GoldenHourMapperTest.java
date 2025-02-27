@@ -8,6 +8,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import vn.com.fecredit.app.dto.GoldenHourDTO;
+import vn.com.fecredit.app.dto.golden.CreateGoldenHourRequest;
+import vn.com.fecredit.app.dto.golden.UpdateGoldenHourRequest;
 import vn.com.fecredit.app.model.Event;
 import vn.com.fecredit.app.model.GoldenHour;
 import vn.com.fecredit.app.model.Reward;
@@ -15,126 +17,141 @@ import vn.com.fecredit.app.model.Reward;
 class GoldenHourMapperTest {
 
     private GoldenHourMapper mapper;
-    private Event event;
-    private Reward reward;
+    private Event testEvent;
+    private Reward testReward;
+    private GoldenHour testGoldenHour;
+    private LocalDateTime now;
 
     @BeforeEach
     void setUp() {
         mapper = new GoldenHourMapper();
+        now = LocalDateTime.now();
 
-        event = Event.builder()
-            .id(1L)
-            .name("Test Event")
-            .build();
+        testEvent = Event.builder()
+                .id(1L)
+                .name("Test Event")
+                .build();
 
-        reward = Reward.builder()
-            .id(1L)
-            .name("Test Reward")
-            .build();
+        testReward = Reward.builder()
+                .id(1L)
+                .name("Test Reward")
+                .build();
+
+        testGoldenHour = GoldenHour.builder()
+                .id(1L)
+                .event(testEvent)
+                .reward(testReward)
+                .name("Test Golden Hour")
+                .description("Test Description")
+                .startTime(now)
+                .endTime(now.plusHours(2))
+                .multiplier(2.0)
+                .isActive(true)
+                .build();
     }
 
     @Test
-    void toDTO_ShouldMapAllFields() {
-        // Given
-        GoldenHour entity = GoldenHour.builder()
-            .id(1L)
-            .event(event)
-            .reward(reward)
-            .name("Test Golden Hour")
-            .startHour(9)
-            .endHour(17)
-            .multiplier(2.0)
-            .isActive(true)
-            .build();
+    void toDTO_Success() {
+        GoldenHourDTO dto = mapper.toDTO(testGoldenHour);
 
-        // When
-        GoldenHourDTO dto = mapper.toDTO(entity);
-
-        // Then
         assertThat(dto).isNotNull();
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getEventId()).isEqualTo(1L);
         assertThat(dto.getRewardId()).isEqualTo(1L);
         assertThat(dto.getName()).isEqualTo("Test Golden Hour");
-        assertThat(dto.getStartHour()).isEqualTo(9);
-        assertThat(dto.getEndHour()).isEqualTo(17);
+        assertThat(dto.getStartTime()).isEqualTo(now);
+        assertThat(dto.getEndTime()).isEqualTo(now.plusHours(2));
         assertThat(dto.getMultiplier()).isEqualTo(2.0);
         assertThat(dto.getIsActive()).isTrue();
     }
 
     @Test
-    void toEntity_FromCreateRequest_ShouldMapAllFields() {
-        // Given
-        GoldenHourDTO.CreateRequest request = GoldenHourDTO.CreateRequest.builder()
-            .name("Test Golden Hour")
-            .startHour(9)
-            .endHour(17)
-            .multiplier(2.0)
-            .isActive(true)
-            .build();
+    void createEntityFromRequest_Success() {
+        CreateGoldenHourRequest request = CreateGoldenHourRequest.builder()
+                .eventId(1L)
+                .rewardId(1L)
+                .name("New Golden Hour")
+                .description("New Description")
+                .startTime(now)
+                .endTime(now.plusHours(2))
+                .multiplier(2.0)
+                .isActive(true)
+                .build();
 
-        // When
-        GoldenHour entity = mapper.toEntity(request);
+        GoldenHour entity = mapper.createEntityFromRequest(request);
 
-        // Then
         assertThat(entity).isNotNull();
-        assertThat(entity.getName()).isEqualTo("Test Golden Hour");
-        assertThat(entity.getStartHour()).isEqualTo(9);
-        assertThat(entity.getEndHour()).isEqualTo(17);
+        assertThat(entity.getName()).isEqualTo("New Golden Hour");
+        assertThat(entity.getDescription()).isEqualTo("New Description");
+        assertThat(entity.getStartTime()).isEqualTo(now);
+        assertThat(entity.getEndTime()).isEqualTo(now.plusHours(2));
         assertThat(entity.getMultiplier()).isEqualTo(2.0);
         assertThat(entity.isActive()).isTrue();
     }
 
     @Test
-    void toEntity_FromCreateRequestWithDateTime_ShouldMapHours() {
-        // Given
-        LocalDateTime startTime = LocalDateTime.now().withHour(9);
-        LocalDateTime endTime = LocalDateTime.now().withHour(17);
-        
+    void createEntityFromNestedRequest_Success() {
         GoldenHourDTO.CreateRequest request = GoldenHourDTO.CreateRequest.builder()
-            .name("Test Golden Hour")
-            .startTime(startTime)
-            .endTime(endTime)
-            .multiplier(2.0)
-            .isActive(true)
-            .build();
+                .eventId(1L)
+                .rewardId(1L)
+                .name("New Golden Hour")
+                .description("New Description")
+                .startTime(now)
+                .endTime(now.plusHours(2))
+                .multiplier(2.0)
+                .isActive(true)
+                .build();
 
-        // When
-        GoldenHour entity = mapper.toEntity(request);
+        GoldenHour entity = mapper.createEntityFromRequest(request);
 
-        // Then
         assertThat(entity).isNotNull();
-        assertThat(entity.getName()).isEqualTo("Test Golden Hour");
-        assertThat(entity.getStartHour()).isEqualTo(9);
-        assertThat(entity.getEndHour()).isEqualTo(17);
+        assertThat(entity.getName()).isEqualTo("New Golden Hour");
+        assertThat(entity.getDescription()).isEqualTo("New Description");
+        assertThat(entity.getStartTime()).isEqualTo(now);
+        assertThat(entity.getEndTime()).isEqualTo(now.plusHours(2));
         assertThat(entity.getMultiplier()).isEqualTo(2.0);
         assertThat(entity.isActive()).isTrue();
     }
 
     @Test
-    void updateEntity_ShouldUpdateOnlyProvidedFields() {
-        // Given
-        GoldenHour entity = GoldenHour.builder()
-            .name("Original Name")
-            .startHour(9)
-            .endHour(17)
-            .multiplier(2.0)
-            .isActive(true)
-            .build();
+    void updateEntityFromRequest_Success() {
+        UpdateGoldenHourRequest request = UpdateGoldenHourRequest.builder()
+                .name("Updated Golden Hour")
+                .description("Updated Description")
+                .startTime(now.plusHours(1))
+                .endTime(now.plusHours(3))
+                .multiplier(3.0)
+                .isActive(false)
+                .build();
 
+        mapper.updateEntityFromRequest(request, testGoldenHour);
+
+        assertThat(testGoldenHour.getName()).isEqualTo("Updated Golden Hour");
+        assertThat(testGoldenHour.getDescription()).isEqualTo("Updated Description");
+        assertThat(testGoldenHour.getStartTime()).isEqualTo(now.plusHours(1));
+        assertThat(testGoldenHour.getEndTime()).isEqualTo(now.plusHours(3));
+        assertThat(testGoldenHour.getMultiplier()).isEqualTo(3.0);
+        assertThat(testGoldenHour.isActive()).isFalse();
+    }
+
+    @Test
+    void updateEntityFromNestedRequest_Success() {
         GoldenHourDTO.UpdateRequest request = GoldenHourDTO.UpdateRequest.builder()
-            .name("Updated Name")
-            .multiplier(3.0)
-            .build();
+                .name("Updated Golden Hour")
+                .description("Updated Description")
+                .startTime(now.plusHours(1))
+                .endTime(now.plusHours(3))
+                .multiplier(3.0)
+                .isActive(false)
+                .build();
 
-        // When
-        mapper.updateEntity(entity, request);
+        mapper.updateEntityFromRequest(request, testGoldenHour);
 
-        // Then
-        assertThat(entity.getName()).isEqualTo("Updated Name");
-        assertThat(entity.getStartHour()).isEqualTo(9);
-        assertThat(entity.getEndHour()).isEqualTo(17);
-        assertThat(entity.getMultiplier()).isEqualTo(3.0);
-        assertThat(entity.isActive()).isTrue();
+        assertThat(testGoldenHour.getName()).isEqualTo("Updated Golden Hour");
+        assertThat(testGoldenHour.getDescription()).isEqualTo("Updated Description");
+        assertThat(testGoldenHour.getStartTime()).isEqualTo(now.plusHours(1));
+        assertThat(testGoldenHour.getEndTime()).isEqualTo(now.plusHours(3));
+        assertThat(testGoldenHour.getMultiplier()).isEqualTo(3.0);
+        assertThat(testGoldenHour.isActive()).isFalse();
     }
 }

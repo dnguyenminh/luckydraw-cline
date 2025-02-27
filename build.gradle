@@ -2,7 +2,6 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.2'
     id 'io.spring.dependency-management' version '1.1.4'
-    id 'org.flywaydb.flyway' version '9.16.0'
 }
 
 group = 'vn.com.fecredit'
@@ -16,9 +15,6 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
-    all {
-        exclude group: 'commons-logging', module: 'commons-logging'
-    }
 }
 
 repositories {
@@ -26,75 +22,46 @@ repositories {
 }
 
 dependencies {
-    // Spring Boot Starters
-    implementation ('org.springframework.boot:spring-boot-starter-data-jpa') {
-        exclude group: 'org.apache.tomcat', module: 'tomcat-jdbc'
-    }
+    // Spring Boot starters
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     // Database
-    implementation 'org.postgresql:postgresql'
+    runtimeOnly 'com.mysql:mysql-connector-j'
     implementation 'org.flywaydb:flyway-core'
-    
-    // Connection Pool
-    implementation 'com.zaxxer:HikariCP'
+    implementation 'org.flywaydb:flyway-mysql'
 
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
-    // OpenAPI Documentation
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+    // Swagger/OpenAPI
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0'
 
-    // CSV Processing
-    implementation 'com.opencsv:opencsv:5.9'
-
-    // Model Mapper
-    implementation 'org.modelmapper:modelmapper:3.2.0'
+    // MapStruct
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 
-    // Test Dependencies
-    testImplementation('org.springframework.boot:spring-boot-starter-test') {
-        exclude group: 'com.vaadin.external.google', module: 'android-json'
-    }
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    // Test dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
-    testImplementation 'org.mockito:mockito-core'
-    testImplementation 'org.mockito:mockito-junit-jupiter'
-    
-    // Testcontainers
-    testImplementation platform('org.testcontainers:testcontainers-bom:1.19.3')
     testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
 }
 
 test {
     useJUnitPlatform()
-    testLogging {
-        events "passed", "skipped", "failed"
-        exceptionFormat = 'full'
-        showStandardStreams = true
-    }
 }
 
-flyway {
-    // Replace the URL, user, and password with your database connection details.
-
-    def profile = System.getProperty('spring.profiles.active') ?: 'unknown'
-    def prefixDBName = "${profile}" == ""? "" : "${profile}_"
-    def dbName = "${prefixDBName}lucky_draw"
-    url="jdbc:postgresql://localhost:5432/${dbName}"
-    user = 'postgres'
-    password='postgres'
-    schemas = ['public']
-    def cleanDisabledProp = project.findProperty('flyway.cleanDisabled') ?: 'false'
-    cleanDisabled = cleanDisabledProp.toBoolean()
-    baselineOnMigrate = true
+tasks.named('bootBuildImage') {
+    builder = 'paketobuildpacks/builder-jammy-base:latest'
 }

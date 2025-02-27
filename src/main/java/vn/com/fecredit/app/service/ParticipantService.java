@@ -1,107 +1,186 @@
 package vn.com.fecredit.app.service;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import vn.com.fecredit.app.dto.common.PageRequest;
+import vn.com.fecredit.app.dto.common.SearchRequest;
 import vn.com.fecredit.app.dto.ParticipantDTO;
-import vn.com.fecredit.app.dto.participant.CreateParticipantRequest;
-import vn.com.fecredit.app.dto.participant.UpdateParticipantRequest;
-import vn.com.fecredit.app.exception.ResourceNotFoundException;
-import vn.com.fecredit.app.mapper.ParticipantMapper;
-import vn.com.fecredit.app.model.Event;
-import vn.com.fecredit.app.model.Participant;
-import vn.com.fecredit.app.repository.EventRepository;
-import vn.com.fecredit.app.repository.ParticipantRepository;
+import vn.com.fecredit.app.entity.Participant;
+import vn.com.fecredit.app.model.CreateParticipantRequest;
+import vn.com.fecredit.app.model.UpdateParticipantRequest;
 
-@Service
-@RequiredArgsConstructor
-public class ParticipantService {
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
-    private final ParticipantRepository participantRepository;
-    private final EventRepository eventRepository;
-    private final ParticipantMapper participantMapper;
+public interface ParticipantService {
 
-    @Transactional(readOnly = true)
-    public Page<ParticipantDTO> getAllParticipants(String search, Pageable pageable) {
-        // The search is case-insensitive
-        Specification<Participant> specification = (root, query, builder) -> {
-            if (search == null || search.trim().isEmpty()) {
-                return null;
-            }
-            String searchPattern = "%" + search.toLowerCase() + "%";
-            return builder.or(
-                builder.like(builder.lower(root.get("customerId")), searchPattern),
-                builder.like(builder.lower(root.get("fullName")), searchPattern),
-                builder.like(builder.lower(root.get("email")), searchPattern),
-                builder.like(builder.lower(root.get("phoneNumber")), searchPattern)
-            );
-        };
-        
-        return participantRepository.findAll(specification, pageable)
-                .map(participantMapper::toDTO);
-    }
+    /**
+     * Create new participant
+     */
+    ParticipantDTO createParticipant(CreateParticipantRequest request);
 
-    @Transactional(readOnly = true)
-    public ParticipantDTO getParticipant(Long id) {
-        return participantMapper.toDTO(findById(id));
-    }
+    /**
+     * Update participant
+     */
+    ParticipantDTO updateParticipant(Long id, UpdateParticipantRequest request);
 
-    @Transactional
-    public ParticipantDTO createParticipant(CreateParticipantRequest request) {
-        Event event = eventRepository.findById(request.getEventId())
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+    /**
+     * Get participant by ID
+     */
+    ParticipantDTO getParticipantById(Long id);
 
-        Participant participant = Participant.builder()
-                .name(request.getFullName()) // Set the name field to fullName
-                .customerId(request.getCustomerId())
-                .cardNumber(request.getCardNumber())
-                .email(request.getEmail())
-                .fullName(request.getFullName())
-                .phoneNumber(request.getPhoneNumber())
-                .province(request.getProvince())
-                .dailySpinLimit(request.getDailySpinLimit())
-                .spinsRemaining(request.getDailySpinLimit()) // Initialize spinsRemaining
-                .event(event)
-                .employeeId(request.getCustomerId()) // Assuming employeeId should be set to customerId
-                .isActive(true) // Initialize isActive
-                .build();
+    /**
+     * Get participant by user ID
+     */
+    ParticipantDTO getParticipantByUserId(Long userId);
 
-        return participantMapper.toDTO(participantRepository.save(participant));
-    }
+    /**
+     * Get participant by phone number
+     */
+    Optional<Participant> findByPhoneNumber(String phoneNumber);
 
-    @Transactional
-    public ParticipantDTO updateParticipant(Long id, UpdateParticipantRequest request) {
-        Participant participant = findById(id);
-        
-        participant.setFullName(request.getFullName());
-        participant.setEmail(request.getEmail());
-        participant.setPhoneNumber(request.getPhoneNumber());
-        participant.setProvince(request.getProvince());
-        participant.setDailySpinLimit(request.getDailySpinLimit());
-        participant.setIsActive(request.getIsActive());
+    /**
+     * Get participant by email
+     */
+    Optional<Participant> findByEmail(String email);
 
-        return participantMapper.toDTO(participantRepository.save(participant));
-    }
+    /**
+     * Get all participants
+     */
+    List<ParticipantDTO> getAllParticipants();
 
-    @Transactional
-    public void deleteParticipant(Long id) {
-        if (!participantRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Participant not found");
-        }
-        participantRepository.deleteById(id);
-    }
+    /**
+     * Get all active participants
+     */
+    List<ParticipantDTO> getActiveParticipants();
 
-    @Transactional(readOnly = true)
-    public Participant findByCustomerId(String customerId) {
-        return participantRepository.findByCustomerId(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Participant not found"));
-    }
+    /**
+     * Get paginated participants
+     */
+    Page<ParticipantDTO> getParticipants(PageRequest pageRequest);
 
-    private Participant findById(Long id) {
-        return participantRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Participant not found"));
-    }
+    /**
+     * Search participants
+     */
+    Page<ParticipantDTO> searchParticipants(SearchRequest searchRequest);
+
+    /**
+     * Get participants by event ID
+     */
+    List<ParticipantDTO> getParticipantsByEventId(Long eventId);
+
+    /**
+     * Get participants by event location ID
+     */
+    List<ParticipantDTO> getParticipantsByLocationId(Long locationId);
+
+    /**
+     * Delete participant
+     */
+    void deleteParticipant(Long id);
+
+    /**
+     * Block participant
+     */
+    void blockParticipant(Long id, String reason);
+
+    /**
+     * Unblock participant
+     */
+    void unblockParticipant(Long id);
+
+    /**
+     * Check if participant is blocked
+     */
+    boolean isBlocked(Long id);
+
+    /**
+     * Update participant status
+     */
+    void updateParticipantStatus(Long id, boolean active);
+
+    /**
+     * Get participant spin count
+     */
+    int getSpinCount(Long id);
+
+    /**
+     * Update participant spin count
+     */
+    void updateSpinCount(Long id, int spinCount);
+
+    /**
+     * Reset participant spin count
+     */
+    void resetSpinCount(Long id);
+
+    /**
+     * Add spin count to participant
+     */
+    void addSpinCount(Long id, int additionalSpins);
+
+    /**
+     * Get participant last spin time
+     */
+    LocalDateTime getLastSpinTime(Long id);
+
+    /**
+     * Update participant last spin time
+     */
+    void updateLastSpinTime(Long id, LocalDateTime lastSpinTime);
+
+    /**
+     * Check if participant can spin
+     */
+    boolean canSpin(Long id);
+
+    /**
+     * Get participant's total rewards
+     */
+    int getTotalRewards(Long id);
+
+    /**
+     * Get participant's total points
+     */
+    int getTotalPoints(Long id);
+
+    /**
+     * Add points to participant
+     */
+    void addPoints(Long id, int points);
+
+    /**
+     * Deduct points from participant
+     */
+    void deductPoints(Long id, int points);
+
+    /**
+     * Check if phone number exists
+     */
+    boolean existsByPhoneNumber(String phoneNumber);
+
+    /**
+     * Check if email exists
+     */
+    boolean existsByEmail(String email);
+
+    /**
+     * Count participants
+     */
+    long countParticipants();
+
+    /**
+     * Count active participants
+     */
+    long countActiveParticipants();
+
+    /**
+     * Count participants by event
+     */
+    long countParticipantsByEvent(Long eventId);
+
+    /**
+     * Count participants by location
+     */
+    long countParticipantsByLocation(Long locationId);
 }

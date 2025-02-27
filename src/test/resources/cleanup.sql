@@ -1,15 +1,16 @@
--- Clean up all tables in reverse order of dependencies
-TRUNCATE TABLE spin_histories CASCADE;
-TRUNCATE TABLE golden_hours CASCADE;
-TRUNCATE TABLE rewards CASCADE;
-TRUNCATE TABLE participants CASCADE;
-TRUNCATE TABLE event_locations CASCADE;
-TRUNCATE TABLE events CASCADE;
-TRUNCATE TABLE user_roles CASCADE;
-TRUNCATE TABLE roles CASCADE;
-TRUNCATE TABLE users CASCADE;
+-- Clean up all test data
+DELETE FROM participant_roles;
+DELETE FROM spin_histories;
+DELETE FROM golden_hours;
+DELETE FROM rewards;
+DELETE FROM participants;
+DELETE FROM event_locations;
+DELETE FROM events;
+DELETE FROM roles;
+DELETE FROM users;
 
 -- Reset sequences
+ALTER SEQUENCE participant_roles_id_seq RESTART WITH 1;
 ALTER SEQUENCE spin_histories_id_seq RESTART WITH 1;
 ALTER SEQUENCE golden_hours_id_seq RESTART WITH 1;
 ALTER SEQUENCE rewards_id_seq RESTART WITH 1;

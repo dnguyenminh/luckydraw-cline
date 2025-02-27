@@ -13,11 +13,11 @@ class User {
     -String username
     -String password
     -String email
-    -String fullName
-    -String phone
-    -String location
-    -boolean isActive
-    -boolean isEnabled
+    -String firstName
+    -String lastName
+    -String phoneNumber
+    -String status
+    -boolean enabled
     -LocalDateTime createdAt
     -LocalDateTime updatedAt
 }
@@ -49,6 +49,8 @@ class EventLocation {
     -String location
     -int totalSpins
     -int remainingSpins
+    -int dailySpinLimit
+    -long spinsRemaining
     -boolean isActive
     -LocalDateTime createdAt
     -LocalDateTime updatedAt
@@ -56,19 +58,19 @@ class EventLocation {
 
 class Participant {
     -Long id
-    -String customerId
-    -String employeeId
-    -String cardNumber
+    -Long userId
+    -String name
     -String fullName
     -String email
     -String phoneNumber
-    -String name
     -String province
-    -Long eventId
-    -Long eventLocationId
+    -String customerId
+    -String employeeId
+    -String cardNumber
+    -Long spinsRemaining
     -Long dailySpinLimit
-    -long spinsRemaining
-    -boolean isActive
+    -Boolean isActive
+    -Boolean isEligibleForSpin
     -LocalDateTime createdAt
     -LocalDateTime updatedAt
 }
@@ -78,6 +80,7 @@ class Reward {
     -String name
     -String description
     -String location
+    -String province
     -int quantity
     -int remainingQuantity
     -boolean isActive
@@ -86,13 +89,14 @@ class Reward {
     -LocalDateTime updatedAt
 }
 
-class LuckyDrawResult {
+class SpinHistory {
     -Long id
     -Long participantId
     -Long eventId
-    -Long rewardId
+    -Long eventLocationId
+    -String spinCode
+    -boolean isWin
     -LocalDateTime spinTime
-    -String location
     -LocalDateTime createdAt
     -LocalDateTime updatedAt
 }
@@ -109,13 +113,16 @@ class GoldenHour {
 }
 
 ' Relationships
-User "1" -- "*" Role : has >
-Event "1" -- "*" EventLocation : has >
-Event "1" -- "*" Reward : contains >
-Event "1" -- "*" GoldenHour : has >
-Event "1" -- "*" LuckyDrawResult : tracks >
-EventLocation "1" -- "*" Participant : hosts >
-Participant "1" -- "*" LuckyDrawResult : performs >
-Reward "1" -- "*" LuckyDrawResult : awarded in >
+User "1" -{ "*" Role : has >
+User "1" --{ "*" Participant : referenced by >
+Role "*" }--{ "*" Participant : has >
+Event "1" --{ "*" EventLocation : has >
+EventLocation "1" --{ "*" Participant : hosts >
+EventLocation "1" --{ "*" SpinHistory : tracks >
+EventLocation "1" --{ "*" Reward : contains >
+EventLocation "1" -{ "*" GoldenHour : has >
+Participant "1" --{ "*" SpinHistory : performs >
+Reward "0..1" --{ "*" SpinHistory : awarded in >
+SpinHistory "1" - "0..1" GoldenHour : in
 
 @enduml

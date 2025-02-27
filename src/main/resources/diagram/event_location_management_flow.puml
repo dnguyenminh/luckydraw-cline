@@ -1,0 +1,66 @@
+@startuml Event Location Management Flow
+
+' Style settings
+skinparam {
+    ArrowColor #666666
+    BackgroundColor white
+    ActivityBackgroundColor white
+    ActivityBorderColor #666666
+    ActivityDiamondBackgroundColor white
+    ActivityDiamondBorderColor #666666
+}
+
+|Admin|
+start
+:Submit location management request;
+
+|EventService|
+:Find event by ID;
+if (Event exists?) is (no) then
+    :Return event not found error;
+    end
+endif
+
+|EventLocationService|
+split
+    :Create new location:
+    * Location name
+    * Total spins
+    * Daily spin limit;
+split again
+    :Update existing location:
+    * Adjust total spins
+    * Modify daily limit;
+split again
+    :Add spins to location;
+end split
+
+:Validate location data;
+if (Valid data?) is (no) then
+    :Return validation error;
+    end
+endif
+
+:Lock location for update;
+if (Lock acquired?) is (no) then
+    :Return concurrent access error;
+    end
+endif
+
+fork
+    :Update remaining spins;
+fork again
+    :Update daily spin limit;
+end fork
+
+:Save changes;
+if (Save successful?) is (no) then
+    :Return save error;
+    end
+endif
+
+|Admin|
+:Return operation success;
+stop
+
+@enduml

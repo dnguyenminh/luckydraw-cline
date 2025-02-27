@@ -1,111 +1,165 @@
 package vn.com.fecredit.app.mapper;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 import vn.com.fecredit.app.dto.RewardDTO;
-import vn.com.fecredit.app.model.Event;
-import vn.com.fecredit.app.model.Reward;
-import vn.com.fecredit.app.repository.EventRepository;
+import vn.com.fecredit.app.entity.Event;
+import vn.com.fecredit.app.entity.Reward;
+import vn.com.fecredit.app.entity.SpinHistory;
 
 @Component
 @RequiredArgsConstructor
 public class RewardMapper {
 
-    private final GoldenHourMapper goldenHourMapper;
-    private final EventRepository eventRepository;
-
-    public RewardDTO toDTO(Reward reward) {
-        if (reward == null) {
-            return null;
-        }
-
-        RewardDTO dto = RewardDTO.builder()
-            .id(reward.getId())
-            .eventId(reward.getEvent() != null ? reward.getEvent().getId() : null)
-            .eventName(reward.getEvent() != null ? reward.getEvent().getName() : null)
-            .eventRegionId(reward.getEventRegionId())
-            .code(reward.getCode())
-            .name(reward.getName())
-            .description(reward.getDescription())
-            .applicableProvinces(reward.getApplicableProvincesAsString())
-            .quantity(reward.getQuantity())
-            .remainingQuantity(reward.getRemainingQuantity())
-            .probability(reward.getProbability())
-            .maxQuantityInPeriod(reward.getMaxQuantityInPeriod())
-            .startDate(reward.getStartDate())
-            .endDate(reward.getEndDate())
-            .isActive(reward.isActive())
-            .version(reward.getVersion())
-            .createdAt(reward.getCreatedAt())
-            .updatedAt(reward.getUpdatedAt())
-            .build();
-
-        reward.getGoldenHours().forEach(gh -> 
-            dto.getGoldenHours().add(goldenHourMapper.toDTO(gh)));
-
-        return dto;
+    public Reward createEntityFromRequest(RewardDTO.CreateRewardRequest request) {
+        return Reward.builder()
+                .eventId(request.getEventId())
+                .name(request.getName())
+                .description(request.getDescription())
+                .quantity(request.getQuantity())
+                .remainingQuantity(request.getQuantity())
+                .probability(request.getProbability())
+                .active(request.getActive() != null ? request.getActive() : true)
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .build();
     }
 
-    public Reward toEntity(RewardDTO.CreateRewardRequest request) {
-        if (request == null) {
-            return null;
+    public void updateEntityFromRequest(Reward reward, RewardDTO.UpdateRewardRequest request) {
+        if (request.getName() != null) {
+            reward.setName(request.getName());
         }
-
-        Event event = request.getEventId() != null ? 
-            eventRepository.findById(request.getEventId())
-                .orElseThrow(() -> new IllegalArgumentException("Event not found with id: " + request.getEventId()))
-            : null;
-
-        Reward reward = Reward.builder()
-            .event(event)
-            .eventRegionId(request.getEventRegionId())
-            .code(request.getCode())
-            .name(request.getName())
-            .description(request.getDescription())
-            .quantity(request.getQuantity())
-            .remainingQuantity(request.getQuantity())
-            .probability(request.getProbability())
-            .maxQuantityInPeriod(request.getMaxQuantityInPeriod())
-            .startDate(request.getStartDate())
-            .endDate(request.getEndDate())
-            .isActive(request.isActive())
-            .build();
-
-        reward.setApplicableProvincesFromString(request.getApplicableProvinces());
-
-        request.getGoldenHours().forEach(gh -> 
-            reward.addGoldenHour(goldenHourMapper.toEntity(gh)));
-
-        return reward;
-    }
-
-    public void updateRewardFromRequest(RewardDTO.UpdateRewardRequest request, Reward reward) {
-        if (request == null || reward == null) {
-            return;
+        if (request.getDescription() != null) {
+            reward.setDescription(request.getDescription());
         }
-
-        if (request.getCode() != null) reward.setCode(request.getCode());
-        if (request.getName() != null) reward.setName(request.getName());
-        if (request.getDescription() != null) reward.setDescription(request.getDescription());
         if (request.getQuantity() != null) {
-            reward.setQuantity(request.getQuantity());
-            if (request.getQuantity() < reward.getRemainingQuantity()) {
-                reward.setRemainingQuantity(request.getQuantity());
-            }
+            reward.updateQuantity(request.getQuantity());
         }
-        if (request.getProbability() != null) reward.setProbability(request.getProbability());
-        if (request.getMaxQuantityInPeriod() != null) reward.setMaxQuantityInPeriod(request.getMaxQuantityInPeriod());
-        if (request.getStartDate() != null) reward.setStartDate(request.getStartDate());
-        if (request.getEndDate() != null) reward.setEndDate(request.getEndDate());
-        if (request.getIsActive() != null) reward.setActive(request.isActive());
-        if (request.getApplicableProvinces() != null) {
-            reward.setApplicableProvincesFromString(request.getApplicableProvinces());
+        if (request.getRemainingQuantity() != null) {
+            reward.setRemainingQuantity(request.getRemainingQuantity());
+        }
+        if (request.getProbability() != null) {
+            reward.setProbability(request.getProbability());
+        }
+        if (request.getActive() != null) {
+            reward.setActive(request.getActive());
+        }
+        if (request.getStartDate() != null) {
+            reward.setStartDate(request.getStartDate());
+        }
+        if (request.getEndDate() != null) {
+            reward.setEndDate(request.getEndDate());
+        }
+    }
+
+    public RewardDTO.RewardResponse toResponse(Reward reward) {
+        Event event = reward.getEvent();
+        return RewardDTO.RewardResponse.builder()
+                .id(reward.getId())
+                .eventId(event.getId())
+                .eventName(event.getName())
+                .name(reward.getName())
+                .description(reward.getDescription())
+                .quantity(reward.getQuantity())
+                .remainingQuantity(reward.getRemainingQuantity())
+                .probability(reward.getProbability())
+                .effectiveProbability(reward.getEffectiveProbability())
+                .active(reward.isActive())
+                .startDate(reward.getStartDate())
+                .endDate(reward.getEndDate())
+                .createdAt(reward.getCreatedAt())
+                .updatedAt(reward.getUpdatedAt())
+                .statistics(calculateStatistics(reward))
+                .build();
+    }
+
+    public RewardDTO.RewardSummary toSummary(Reward reward) {
+        return RewardDTO.RewardSummary.builder()
+                .id(reward.getId())
+                .name(reward.getName())
+                .remainingQuantity(reward.getRemainingQuantity())
+                .probability(reward.getProbability())
+                .active(reward.isActive())
+                .endDate(reward.getEndDate())
+                .build();
+    }
+
+    public RewardDTO.RewardStatistics calculateStatistics(Reward reward) {
+        Set<SpinHistory> spins = reward.getSpinHistories();
+        if (spins == null || spins.isEmpty()) {
+            return RewardDTO.RewardStatistics.builder()
+                    .totalWins(0)
+                    .totalSpins(0)
+                    .actualWinRate(0.0)
+                    .theoreticalWinRate(reward.getProbability())
+                    .averageProbabilityMultiplier(1.0)
+                    .winsToday(0)
+                    .winsThisWeek(0)
+                    .winsThisMonth(0)
+                    .build();
         }
 
-        // Update golden hours
-        reward.getGoldenHours().clear();
-        request.getGoldenHours().forEach(gh -> 
-            reward.addGoldenHour(goldenHourMapper.toEntity(gh)));
+        LocalDateTime now = LocalDateTime.now();
+        long totalSpins = spins.size();
+        long totalWins = spins.stream().filter(SpinHistory::isWin).count();
+        double actualWinRate = (double) totalWins / totalSpins;
+
+        double avgMultiplier = spins.stream()
+                .filter(s -> s.getProbabilityMultiplier() != null)
+                .mapToDouble(SpinHistory::getProbabilityMultiplier)
+                .average()
+                .orElse(1.0);
+
+        LocalDateTime lastWinDate = spins.stream()
+                .filter(SpinHistory::isWin)
+                .map(SpinHistory::getSpinDate)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
+
+        long winsToday = spins.stream()
+                .filter(s -> s.isWin() && s.getSpinDate().toLocalDate().equals(now.toLocalDate()))
+                .count();
+
+        long winsThisWeek = spins.stream()
+                .filter(s -> s.isWin() && s.getSpinDate().isAfter(now.minusWeeks(1)))
+                .count();
+
+        long winsThisMonth = spins.stream()
+                .filter(s -> s.isWin() && s.getSpinDate().isAfter(now.minusMonths(1)))
+                .count();
+
+        Long remainingDays = reward.getEndDate() != null ? 
+                now.until(reward.getEndDate(), java.time.temporal.ChronoUnit.DAYS) : null;
+
+        return RewardDTO.RewardStatistics.builder()
+                .totalWins((int) totalWins)
+                .totalSpins((int) totalSpins)
+                .actualWinRate(actualWinRate)
+                .theoreticalWinRate(reward.getProbability())
+                .averageProbabilityMultiplier(avgMultiplier)
+                .winsToday((int) winsToday)
+                .winsThisWeek((int) winsThisWeek)
+                .winsThisMonth((int) winsThisMonth)
+                .lastWinDate(lastWinDate)
+                .estimatedRemainingDays(remainingDays)
+                .build();
+    }
+
+    public List<RewardDTO.RewardResponse> toResponseList(List<Reward> rewards) {
+        return rewards.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<RewardDTO.RewardSummary> toSummaryList(List<Reward> rewards) {
+        return rewards.stream()
+                .map(this::toSummary)
+                .collect(Collectors.toList());
     }
 }

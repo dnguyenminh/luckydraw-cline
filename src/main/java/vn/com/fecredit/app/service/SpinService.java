@@ -1,162 +1,100 @@
 package vn.com.fecredit.app.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.model.*;
-import vn.com.fecredit.app.repository.*;
-import vn.com.fecredit.app.exception.BusinessException;
 import vn.com.fecredit.app.dto.SpinRequest;
+import vn.com.fecredit.app.dto.SpinResultDTO;
+import vn.com.fecredit.app.exception.SpinNotAllowedException;
+import vn.com.fecredit.app.exception.ResourceNotFoundException;
+import vn.com.fecredit.app.service.common.BaseService;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.ConcurrentHashMap;
 
-@Service
-@RequiredArgsConstructor
-@Slf4j
-public class SpinService {
-    
-    private final EventRepository eventRepository;
-    private final ParticipantRepository participantRepository;
-    private final RewardRepository rewardRepository;
-    private final SpinHistoryRepository spinHistoryRepository;
-    private final LuckyDrawResultRepository luckyDrawResultRepository;
-    private final GoldenHourRepository goldenHourRepository;
-    private final RewardSelectionService rewardSelectionService;
+/**
+ * Service for handling spinning operations in the lucky draw system
+ */
+public interface SpinService extends BaseService {
 
-    // Cache for remaining spins by event
-    private final ConcurrentHashMap<Long, AtomicLong> remainingSpinsCache = new ConcurrentHashMap<>();
+    /**
+     * Process a spin request and return the result
+     * @param request The spin request containing event and participant details
+     * @return The result of the spin including any rewards won
+     * @throws SpinNotAllowedException if the spin is not allowed
+     * @throws ResourceNotFoundException if required resources are not found
+     */
+    SpinResultDTO spin(SpinRequest request);
 
-    @Transactional
-    public SpinHistory spin(SpinRequest request) {
-        checkSpinEligibility(request);
+    /**
+     * Process a spin request and get the result synchronously
+     * @param request The spin request
+     * @return The result of the spin
+     */
+    SpinResultDTO spinAndGetResult(SpinRequest request);
 
-        Event event = eventRepository.findById(request.getEventId())
-            .orElseThrow(() -> new BusinessException("Event not found"));
+    /**
+     * Process a spin by participant ID
+     * @param participantId The ID of the participant
+     * @return The result of the spin
+     */
+    SpinResultDTO processSpin(long participantId);
 
-        Participant participant = participantRepository.findById(request.getParticipantId())
-            .orElseThrow(() -> new BusinessException("Participant not found"));
+    /**
+     * Get the latest spin result for a participant
+     * @param participantId The ID of the participant
+     * @return The latest spin result
+     */
+    SpinResultDTO getLatestSpinResult(long participantId);
 
-        // Get or initialize remaining spins
-        AtomicLong remainingSpins = remainingSpinsCache.computeIfAbsent(
-            event.getId(),
-            id -> new AtomicLong(event.getTotalSpins())
-        );
+    /**
+     * Check if a spin is allowed for the given request
+     * @param request The spin request to validate
+     * @return true if spinning is allowed, false otherwise
+     */
+    boolean isSpinAllowed(SpinRequest request);
 
-        // Check if spins are available
-        long currentSpins = remainingSpins.get();
-        if (currentSpins <= 0) {
-            throw new BusinessException("No remaining spins available");
-        }
+    /**
+     * Get the number of remaining spins for a participant in an event
+     * @param eventId The ID of the event
+     * @param participantId The ID of the participant
+     * @return Number of spins remaining
+     */
+    Long getRemainingSpins(Long eventId, Long participantId);
 
-        // Get active rewards and golden hours
-        List<Reward> activeRewards = rewardRepository.findActiveRewardsByEventId(event.getId());
-        if (activeRewards.isEmpty()) {
-            throw new BusinessException("No active rewards available");
-        }
+    /**
+     * Check if a golden hour is currently active
+     * @param eventId The ID of the event
+     * @param eventLocationId The ID of the event location
+     * @param timestamp The time to check
+     * @return true if golden hour is active, false otherwise
+     */
+    boolean isGoldenHourActive(Long eventId, Long eventLocationId, LocalDateTime timestamp);
 
-        LocalDateTime now = LocalDateTime.now();
-        Optional<GoldenHour> goldenHour = goldenHourRepository.findActiveGoldenHour(
-            event.getId(), now);
+    /**
+     * Get the current golden hour multiplier if active
+     * @param eventId The ID of the event
+     * @param eventLocationId The ID of the event location
+     * @return The multiplier value, defaults to 1.0 if no golden hour is active
+     */
+    double getGoldenHourMultiplier(Long eventId, Long eventLocationId);
 
-        // Select reward using the selection service
-        Optional<Reward> selectedReward = rewardSelectionService.selectReward(
-            event,
-            activeRewards,
-            currentSpins,
-            goldenHour,
-            request.getCustomerLocation()
-        );
+    /**
+     * Get spin history for a participant in an event
+     * @param eventId The ID of the event
+     * @param participantId The ID of the participant 
+     * @return Summary of participant's spin history
+     */
+    SpinResultDTO.SpinHistoryStats getSpinHistory(Long eventId, Long participantId);
 
-        // Update remaining spins atomically
-        long updatedSpins = remainingSpins.decrementAndGet();
+    /**
+     * Initialize spin settings for a participant in an event
+     * @param eventId The ID of the event
+     * @param participantId The ID of the participant
+     * @param initialSpins Number of spins to allocate
+     */
+    void initializeSpins(Long eventId, Long participantId, Long initialSpins);
 
-        // Create and save spin history
-        final SpinHistory spinHistory = spinHistoryRepository.save(
-            SpinHistory.builder()
-                .event(event)
-                .participant(participant)
-                .spinTime(now)
-                .won(selectedReward.isPresent())
-                .result(selectedReward.isPresent() ? "WIN" : "LOSE")
-                .reward(selectedReward.orElse(null))
-                .isGoldenHour(goldenHour.isPresent())
-                .currentMultiplier(calculateGoldenHourMultiplier(goldenHour))
-                .remainingSpins(updatedSpins)
-                .build()
-        );
-
-        // If won, create lucky draw result
-        selectedReward.ifPresent(reward -> {
-            LuckyDrawResult result = LuckyDrawResult.builder()
-                .participant(participant)
-                .reward(reward)
-                .spinHistory(spinHistory)
-                .winTime(now)
-                .isClaimed(false)
-                .build();
-            luckyDrawResultRepository.save(result);
-
-            log.info("Participant {} won reward {} in event {}", 
-                participant.getId(), reward.getId(), event.getId());
-        });
-
-        return spinHistory;
-    }
-
-    @Transactional(readOnly = true)
-    public void checkSpinEligibility(SpinRequest request) {
-        Event event = eventRepository.findById(request.getEventId())
-            .orElseThrow(() -> new BusinessException("Event not found"));
-
-        if (!event.getIsActive()) {
-            throw new BusinessException("Event is not active");
-        }
-
-        if (!event.isInProgress()) {
-            throw new BusinessException("Event is not in progress");
-        }
-
-        if (!event.hasSpinsAvailable()) {
-            throw new BusinessException("No spins available for this event");
-        }
-
-        Participant participant = participantRepository.findById(request.getParticipantId())
-            .orElseThrow(() -> new BusinessException("Participant not found"));
-
-        if (!participant.getIsActive()) {
-            throw new BusinessException("Participant is not active");
-        }
-
-        if (!participant.getEvent().getId().equals(event.getId())) {
-            throw new BusinessException("Participant does not belong to this event");
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public SpinHistory getLatestSpinHistory(Long participantId) {
-        return spinHistoryRepository.findFirstByParticipantIdOrderBySpinTimeDesc(participantId)
-            .orElse(null);
-    }
-
-    private double calculateGoldenHourMultiplier(Optional<GoldenHour> goldenHour) {
-        return goldenHour.map(GoldenHour::getMultiplier).orElse(1.0);
-    }
-
-    @Transactional(readOnly = true)
-    public long getRemainingSpins(Long eventId) {
-        return remainingSpinsCache.computeIfAbsent(eventId,
-            id -> new AtomicLong(eventRepository.findById(id)
-                .map(Event::getTotalSpins)
-                .orElse(0L))).get();
-    }
-
-    // For testing
-    public void resetSpinCount(Long eventId) {
-        remainingSpinsCache.remove(eventId);
-    }
+    /**
+     * Reset daily spin count for a participant
+     * @param eventId The ID of the event
+     * @param participantId The ID of the participant
+     */
+    void resetDailySpins(Long eventId, Long participantId);
 }

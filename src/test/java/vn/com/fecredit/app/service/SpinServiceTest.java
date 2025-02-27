@@ -1,15 +1,8 @@
 package vn.com.fecredit.app.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,16 +15,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import vn.com.fecredit.app.dto.SpinRequest;
-import vn.com.fecredit.app.exception.BusinessException;
+import vn.com.fecredit.app.dto.SpinResultDTO;
+import vn.com.fecredit.app.exception.ResourceNotFoundException;
+import vn.com.fecredit.app.exception.SpinNotAllowedException;
 import vn.com.fecredit.app.model.Event;
 import vn.com.fecredit.app.model.GoldenHour;
-import vn.com.fecredit.app.model.LuckyDrawResult;
 import vn.com.fecredit.app.model.Participant;
 import vn.com.fecredit.app.model.Reward;
 import vn.com.fecredit.app.model.SpinHistory;
 import vn.com.fecredit.app.repository.EventRepository;
 import vn.com.fecredit.app.repository.GoldenHourRepository;
-import vn.com.fecredit.app.repository.LuckyDrawResultRepository;
 import vn.com.fecredit.app.repository.ParticipantRepository;
 import vn.com.fecredit.app.repository.RewardRepository;
 import vn.com.fecredit.app.repository.SpinHistoryRepository;
@@ -43,162 +36,218 @@ class SpinServiceTest {
     @Mock private ParticipantRepository participantRepository;
     @Mock private RewardRepository rewardRepository;
     @Mock private SpinHistoryRepository spinHistoryRepository;
-    @Mock private LuckyDrawResultRepository luckyDrawResultRepository;
     @Mock private GoldenHourRepository goldenHourRepository;
     @Mock private RewardSelectionService rewardSelectionService;
 
     private SpinService spinService;
-    private Event event;
-    private Participant participant;
-    private Reward reward;
-    private SpinRequest request;
-    private LocalDateTime now;
 
     @BeforeEach
     void setUp() {
         spinService = new SpinService(
-            eventRepository,
-            participantRepository,
-            rewardRepository,
-            spinHistoryRepository,
-            luckyDrawResultRepository,
-            goldenHourRepository,
-            rewardSelectionService
+                eventRepository,
+                participantRepository,
+                rewardRepository,
+                spinHistoryRepository,
+                goldenHourRepository,
+                rewardSelectionService
         );
+    }
 
-        now = LocalDateTime.now();
-        event = Event.builder()
-                .id(1L)
-                .code("TEST001")
-                .name("Test Event")
-                .startDate(now.minusDays(1))
-                .endDate(now.plusDays(1))
-                .totalSpins(100L)
-                .remainingSpins(50L)
+    @Test
+    void spinWithValidRequestShouldSucceed() {
+        // Setup
+        Long eventId = 1L;
+        Long participantId = 2L;
+        Event event = Event.builder()
+                .id(eventId)
                 .isActive(true)
                 .build();
-
-        participant = Participant.builder()
-                .id(1L)
-                .event(event)
-                .isActive(true)
+        Participant participant = Participant.builder()
+                .id(participantId)
+                .remainingSpins(5)
                 .build();
-
-        reward = Reward.builder()
-                .id(1L)
+        Reward reward = Reward.builder()
+                .id(3L)
                 .name("Test Reward")
-                .quantity(10)
-                .remainingQuantity(5)
-                .isActive(true)
+                .build();
+        List<Reward> rewards = List.of(reward);
+
+        SpinRequest request = SpinRequest.builder()
+                .eventId(eventId)
+                .participantId(participantId)
+                .location("TEST")
+                .hasActiveParticipation(true)
                 .build();
 
-        request = SpinRequest.builder()
-                .eventId(1L)
-                .participantId(1L)
-                .customerLocation("Location1")
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+        when(rewardRepository.findAvailableRewards(any(), any())).thenReturn(rewards);
+        when(goldenHourRepository.findActiveGoldenHour(any(), any())).thenReturn(Optional.empty());
+        when(rewardSelectionService.selectReward(any(), any(), any(), any(), any())).thenReturn(reward);
+        when(rewardRepository.decrementRemainingQuantityById(any())).thenReturn(1);
+        when(spinHistoryRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        // Execute
+        SpinResultDTO result = spinService.spinAndGetResult(request);
+
+        // Verify
+        assertNotNull(result);
+        assertTrue(result.getWon());
+        assertEquals(4L, result.getRemainingSpins());
+        assertEquals(reward.getId(), result.getRewardId());
+        assertEquals(reward.getName(), result.getRewardName());
+    }
+
+    @Test
+    void spinWithNoRewardsShouldReturnUnsuccessfulSpin() {
+        // Setup
+        Long eventId = 1L;
+        Long participantId = 2L;
+        Event event = Event.builder()
+                .id(eventId)
+                .isActive(true)
+                .build();
+        Participant participant = Participant.builder()
+                .id(participantId)
+                .remainingSpins(5)
+                .build();
+
+        SpinRequest request = SpinRequest.builder()
+                .eventId(eventId)
+                .participantId(participantId)
+                .location("TEST")
+                .hasActiveParticipation(true)
+                .build();
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+        when(rewardRepository.findAvailableRewards(any(), any())).thenReturn(List.of());
+        when(goldenHourRepository.findActiveGoldenHour(any(), any())).thenReturn(Optional.empty());
+        when(rewardSelectionService.selectReward(any(), any(), any(), any(), any())).thenReturn(null);
+        when(spinHistoryRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        // Execute
+        SpinResultDTO result = spinService.spinAndGetResult(request);
+
+        // Verify
+        assertNotNull(result);
+        assertFalse(result.getWon());
+        assertEquals(4L, result.getRemainingSpins());
+        assertNull(result.getRewardId());
+        assertNull(result.getRewardName());
+    }
+
+    @Test
+    void spinWithInactiveEventShouldThrowException() {
+        // Setup
+        Long eventId = 1L;
+        Long participantId = 2L;
+        Event event = Event.builder()
+                .id(eventId)
+                .isActive(false)
+                .build();
+
+        SpinRequest request = SpinRequest.builder()
+                .eventId(eventId)
+                .participantId(participantId)
+                .location("TEST")
+                .build();
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+
+        // Execute & Verify
+        assertThrows(SpinNotAllowedException.class, () -> spinService.spin(request));
+    }
+
+    @Test
+    void spinWithNoRemainingSpinsShouldThrowException() {
+        // Setup
+        Long eventId = 1L;
+        Long participantId = 2L;
+        Event event = Event.builder()
+                .id(eventId)
+                .isActive(true)
+                .build();
+        Participant participant = Participant.builder()
+                .id(participantId)
+                .remainingSpins(0)
+                .build();
+
+        SpinRequest request = SpinRequest.builder()
+                .eventId(eventId)
+                .participantId(participantId)
+                .location("TEST")
+                .build();
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+
+        // Execute & Verify
+        assertThrows(SpinNotAllowedException.class, () -> spinService.spin(request));
+    }
+
+    @Test
+    void spinWithInvalidEventShouldThrowException() {
+        // Setup
+        Long eventId = 1L;
+        Long participantId = 2L;
+
+        SpinRequest request = SpinRequest.builder()
+                .eventId(eventId)
+                .participantId(participantId)
+                .location("TEST")
+                .build();
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
+
+        // Execute & Verify
+        assertThrows(ResourceNotFoundException.class, () -> spinService.spin(request));
+    }
+
+    @Test
+    void spinDuringGoldenHourShouldApplyMultiplier() {
+        // Setup
+        Long eventId = 1L;
+        Long participantId = 2L;
+        Event event = Event.builder()
+                .id(eventId)
+                .isActive(true)
+                .build();
+        Participant participant = Participant.builder()
+                .id(participantId)
+                .remainingSpins(5)
+                .build();
+        Reward reward = Reward.builder()
+                .id(3L)
+                .name("Test Reward")
+                .build();
+        GoldenHour goldenHour = GoldenHour.builder()
+                .multiplier(2.0)
+                .build();
+
+        SpinRequest request = SpinRequest.builder()
+                .eventId(eventId)
+                .participantId(participantId)
+                .location("TEST")
                 .isGoldenHourEligible(true)
                 .hasActiveParticipation(true)
-                .remainingSpinsForParticipant(3L)
-                .participantStatus("ACTIVE")
                 .build();
-    }
 
-    @Test
-    void shouldSuccessfullySpinAndWin() {
-        when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
-        when(participantRepository.findById(1L)).thenReturn(Optional.of(participant));
-        when(rewardRepository.findActiveRewardsByEventId(1L)).thenReturn(List.of(reward));
-        when(goldenHourRepository.findActiveGoldenHour(eq(event.getId()), any(LocalDateTime.class))).thenReturn(Optional.empty());
-        when(rewardSelectionService.selectReward(
-                any(Event.class),
-                anyList(),
-                anyLong(),
-                any(),
-                anyString()))
-            .thenReturn(Optional.of(reward));
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+        when(rewardRepository.findAvailableRewards(any(), any())).thenReturn(List.of(reward));
+        when(goldenHourRepository.findActiveGoldenHour(any(), any())).thenReturn(Optional.of(goldenHour));
+        when(rewardSelectionService.selectReward(any(), any(), any(), any(), any())).thenReturn(reward);
+        when(rewardRepository.decrementRemainingQuantityById(any())).thenReturn(1);
+        when(spinHistoryRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
-        SpinHistory spinHistory = SpinHistory.builder()
-            .event(event)
-            .participant(participant)
-            .reward(reward)
-            .won(true)
-            .result("WIN")
-            .spinTime(now)
-            .remainingSpins(49L)
-            .build();
+        // Execute
+        SpinResultDTO result = spinService.spinAndGetResult(request);
 
-        when(spinHistoryRepository.save(any())).thenReturn(spinHistory);
-        when(luckyDrawResultRepository.save(any())).thenReturn(mock(LuckyDrawResult.class));
-
-        SpinHistory result = spinService.spin(request);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getWon()).isTrue();
-        assertThat(result.getReward()).isEqualTo(reward);
-        verify(spinHistoryRepository).save(any());
-        verify(luckyDrawResultRepository).save(any());
-    }
-
-    @Test
-    void shouldThrowExceptionForInactiveEvent() {
-        event.setIsActive(false);
-        when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
-
-        assertThatThrownBy(() -> spinService.checkSpinEligibility(request))
-            .isInstanceOf(BusinessException.class)
-            .hasMessage("Event is not active");
-    }
-
-    @Test
-    void shouldThrowExceptionWhenNoRemainingSpins() {
-        event.setRemainingSpins(0L);
-        when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
-
-        assertThatThrownBy(() -> spinService.checkSpinEligibility(request))
-            .isInstanceOf(BusinessException.class)
-            .hasMessage("No spins available for this event");
-    }
-
-    @Test
-    void shouldReturnNullForNonExistentSpinHistory() {
-        when(spinHistoryRepository.findFirstByParticipantIdOrderBySpinTimeDesc(1L))
-            .thenReturn(Optional.empty());
-
-        SpinHistory result = spinService.getLatestSpinHistory(1L);
-        assertThat(result).isNull();
-    }
-
-    @Test
-    void shouldCalculateCorrectGoldenHourMultiplier() {
-        GoldenHour goldenHour = GoldenHour.builder()
-            .multiplier(2.0)
-            .isActive(true)
-            .build();
-
-        when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
-        when(participantRepository.findById(1L)).thenReturn(Optional.of(participant));
-        when(rewardRepository.findActiveRewardsByEventId(1L)).thenReturn(List.of(reward));
-        when(goldenHourRepository.findActiveGoldenHour(eq(event.getId()), any(LocalDateTime.class))).thenReturn(Optional.of(goldenHour));
-        when(rewardSelectionService.selectReward(any(Event.class), anyList(), anyLong(), any(), anyString()))
-            .thenReturn(Optional.of(reward));
-
-        SpinHistory spinHistory = SpinHistory.builder()
-            .event(event)
-            .participant(participant)
-            .reward(reward)
-            .won(true)
-            .result("WIN")
-            .spinTime(now)
-            .isGoldenHour(true)
-            .currentMultiplier(2.0)
-            .remainingSpins(49L)
-            .build();
-
-        when(spinHistoryRepository.save(any())).thenReturn(spinHistory);
-
-        SpinHistory result = spinService.spin(request);
-
-        assertThat(result.getIsGoldenHour()).isTrue();
-        assertThat(result.getCurrentMultiplier()).isEqualTo(2.0);
+        // Verify
+        assertNotNull(result);
+        assertTrue(result.getWon());
+        assertTrue(result.getIsGoldenHour());
+        assertEquals(2.0, result.getMultiplier());
     }
 }

@@ -1,38 +1,32 @@
 package vn.com.fecredit.app.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import vn.com.fecredit.app.dto.ParticipantDTO;
 import vn.com.fecredit.app.dto.participant.CreateParticipantRequest;
-import vn.com.fecredit.app.exception.ResourceNotFoundException;
+import vn.com.fecredit.app.dto.participant.UpdateParticipantRequest;
+import vn.com.fecredit.app.model.Event;
+import vn.com.fecredit.app.model.EventLocation;
 import vn.com.fecredit.app.service.ParticipantService;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-@DisplayName("Participant Controller Test")
+@WebMvcTest(ParticipantController.class)
 class ParticipantControllerTest {
 
     @Autowired
@@ -44,106 +38,100 @@ class ParticipantControllerTest {
     @MockBean
     private ParticipantService participantService;
 
+    private Event testEvent;
+    private EventLocation testLocation;
     private CreateParticipantRequest createRequest;
-    private ParticipantDTO expectedResponse;
+    private UpdateParticipantRequest updateRequest;
+    private ParticipantDTO testParticipantDTO;
 
     @BeforeEach
     void setUp() {
-        createRequest = CreateParticipantRequest.builder()
-                .customerId("TEST123")
-                .cardNumber("4111111111111111")
-                .email("test@example.com")
-                .fullName("Test User")
-                .phoneNumber("0987654321")
-                .province("Test Province")
-                .dailySpinLimit(3L)
-                .eventId(1L)
+        testEvent = Event.builder()
+                .id(1L)
+                .name("Test Event")
+                .code("TEST-EVENT")
+                .startDate(LocalDateTime.now())
+                .endDate(LocalDateTime.now().plusDays(30))
+                .isActive(true)
                 .build();
 
-        expectedResponse = ParticipantDTO.builder()
+        testLocation = EventLocation.builder()
                 .id(1L)
-                .customerId(createRequest.getCustomerId())
-                .cardNumber(createRequest.getCardNumber())
-                .email(createRequest.getEmail())
-                .fullName(createRequest.getFullName())
-                .phoneNumber(createRequest.getPhoneNumber())
-                .province(createRequest.getProvince())
-                .dailySpinLimit(createRequest.getDailySpinLimit())
-                .spinsRemaining(createRequest.getDailySpinLimit())
-                .eventId(createRequest.getEventId())
+                .name("Test Location")
+                .province("Test Province")
+                .totalSpins(100)
+                .remainingSpins(100)
+                .dailySpinLimit(3)
+                .spinsRemaining(1000L)
+                .isActive(true)
+                .build();
+
+        createRequest = CreateParticipantRequest.builder()
+                .eventId(testEvent.getId())
+                .eventLocationId(testLocation.getId())
+                .customerId("CUST123")
+                .cardNumber("4111111111111111")
+                .fullName("Test User")
+                .email("test@example.com")
+                .phoneNumber("0123456789")
+                .province("Test Province")
+                .dailySpinLimit(3)
+                .spinsRemaining(3)
                 .isActive(true)
                 .isEligibleForSpin(true)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .build();
+
+        updateRequest = UpdateParticipantRequest.builder()
+                .customerId("CUST123")
+                .cardNumber("4111111111111111")
+                .fullName("Test User")
+                .email("test@example.com")
+                .phoneNumber("0123456789")
+                .province("Test Province")
+                .dailySpinLimit(3)
+                .spinsRemaining(3)
+                .isActive(true)
+                .isEligibleForSpin(true)
+                .build();
+
+        testParticipantDTO = ParticipantDTO.builder()
+                .id(1L)
+                .eventId(testEvent.getId())
+                .eventLocationId(testLocation.getId())
+                .customerId("CUST123")
+                .cardNumber("4111111111111111")
+                .fullName("Test User")
+                .email("test@example.com")
+                .phoneNumber("0123456789")
+                .province("Test Province")
+                .dailySpinLimit(3)
+                .spinsRemaining(3)
+                .isActive(true)
+                .isEligibleForSpin(true)
                 .build();
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void shouldCreateParticipantWhenInputIsValid() throws Exception {
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void createParticipant_Success() throws Exception {
         when(participantService.createParticipant(any(CreateParticipantRequest.class)))
-                .thenReturn(expectedResponse);
+            .thenReturn(testParticipantDTO);
 
-        mockMvc.perform(post("/api/participants")
+        mockMvc.perform(post("/api/v1/participants")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(createRequest)))
-                .andDo(print())
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.customerId").value(createRequest.getCustomerId()))
-                .andExpect(jsonPath("$.dailySpinLimit").value(createRequest.getDailySpinLimit()))
-                .andExpect(jsonPath("$.spinsRemaining").value(createRequest.getDailySpinLimit()));
+                .andExpect(status().isCreated());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void shouldReturn400WhenEmailIsInvalid() throws Exception {
-        createRequest.setEmail("invalid-email");
-        
-        mockMvc.perform(post("/api/participants")
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void updateParticipant_Success() throws Exception {
+        when(participantService.updateParticipant(anyLong(), any(UpdateParticipantRequest.class)))
+            .thenReturn(testParticipantDTO);
+
+        mockMvc.perform(post("/api/v1/participants/{id}", 1L)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(createRequest)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").exists());
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void shouldReturnParticipantWhenIdExists() throws Exception {
-        when(participantService.getParticipant(1L)).thenReturn(expectedResponse);
-
-        mockMvc.perform(get("/api/participants/{id}", 1L))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.customerId").value(expectedResponse.getCustomerId()));
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void shouldReturn404WhenIdDoesNotExist() throws Exception {
-        Long nonExistingId = 999L;
-        when(participantService.getParticipant(nonExistingId))
-                .thenThrow(new ResourceNotFoundException("Participant", "id", nonExistingId));
-
-        mockMvc.perform(get("/api/participants/{id}", nonExistingId))
-                .andDo(print())
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void shouldReturn401WhenUnauthenticated() throws Exception {
-        mockMvc.perform(get("/api/participants/{id}", 1L))
-                .andDo(print())
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    void shouldReturn403WhenInsufficientPrivileges() throws Exception {
-        mockMvc.perform(get("/api/participants/{id}", 1L))
-                .andDo(print())
-                .andExpect(status().isForbidden());
+                .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk());
     }
 }

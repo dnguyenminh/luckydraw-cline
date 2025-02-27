@@ -1,107 +1,169 @@
 package vn.com.fecredit.app.service;
 
+import org.springframework.data.domain.Page;
+import vn.com.fecredit.app.dto.common.PageRequest;
+import vn.com.fecredit.app.dto.common.SearchRequest;
+import vn.com.fecredit.app.dto.GoldenHourDTO;
+import vn.com.fecredit.app.entity.GoldenHour;
+import vn.com.fecredit.app.model.CreateGoldenHourRequest;
+import vn.com.fecredit.app.model.UpdateGoldenHourRequest;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+public interface GoldenHourService {
 
-import lombok.RequiredArgsConstructor;
-import vn.com.fecredit.app.dto.GoldenHourDTO;
-import vn.com.fecredit.app.exception.ResourceNotFoundException;
-import vn.com.fecredit.app.mapper.GoldenHourMapper;
-import vn.com.fecredit.app.model.GoldenHour;
-import vn.com.fecredit.app.model.Reward;
-import vn.com.fecredit.app.repository.GoldenHourRepository;
-import vn.com.fecredit.app.repository.RewardRepository;
+    /**
+     * Create new golden hour
+     */
+    GoldenHourDTO createGoldenHour(CreateGoldenHourRequest request);
 
-@Service
-@RequiredArgsConstructor
-public class GoldenHourService {
+    /**
+     * Update golden hour
+     */
+    GoldenHourDTO updateGoldenHour(Long id, UpdateGoldenHourRequest request);
 
-    private final GoldenHourRepository goldenHourRepository;
-    private final RewardRepository rewardRepository;
-    private final GoldenHourMapper goldenHourMapper;
+    /**
+     * Get golden hour by ID
+     */
+    GoldenHourDTO getGoldenHourById(Long id);
 
-    public List<GoldenHour> findByEventIdAndIsActiveTrue(Long eventId) {
-        return goldenHourRepository.findByEventIdAndIsActiveTrue(eventId);
-    }
+    /**
+     * Get golden hour entity by ID
+     */
+    Optional<GoldenHour> findById(Long id);
 
-    public List<GoldenHour> findActiveByRewardIdWithDetails(Long rewardId) {
-        return goldenHourRepository.findActiveByRewardIdWithDetails(rewardId);
-    }
+    /**
+     * Get all golden hours
+     */
+    List<GoldenHourDTO> getAllGoldenHours();
 
-    public Optional<GoldenHour> findByIdWithDetails(Long id) {
-        return goldenHourRepository.findByIdWithDetails(id);
-    }
+    /**
+     * Get all active golden hours
+     */
+    List<GoldenHourDTO> getActiveGoldenHours();
 
-    public Double getGoldenHourMultiplier(Long rewardId, Long goldenHourId, LocalDateTime currentTime) {
-        // If a specific golden hour is requested, check it first
-        if (goldenHourId != null) {
-            return goldenHourRepository.findByIdWithDetails(goldenHourId)
-                .filter(GoldenHour::isActive)
-                .filter(gh -> gh.getReward().getId().equals(rewardId))
-                .filter(gh -> !currentTime.isBefore(gh.getStartTime()))
-                .filter(gh -> !currentTime.isAfter(gh.getEndTime()))
-                .map(GoldenHour::getMultiplier)
-                .orElse(1.0);
-        }
-        
-        // Otherwise find any active golden hour for the reward
-        return goldenHourRepository.findActiveGoldenHourByRewardId(rewardId, currentTime)
-            .map(GoldenHour::getMultiplier)
-            .orElse(1.0);
-    }
+    /**
+     * Get paginated golden hours
+     */
+    Page<GoldenHourDTO> getGoldenHours(PageRequest pageRequest);
 
-    public boolean isGoldenHourActive(Long rewardId, LocalDateTime dateTime) {
-        return goldenHourRepository.isGoldenHourActive(rewardId, dateTime);
-    }
+    /**
+     * Search golden hours
+     */
+    Page<GoldenHourDTO> searchGoldenHours(SearchRequest searchRequest);
 
-    @Transactional
-    public boolean updateStatus(Long id, boolean status) {
-        int updated = goldenHourRepository.updateStatus(id, status);
-        return updated > 0;
-    }
+    /**
+     * Get golden hours by event
+     */
+    List<GoldenHourDTO> getGoldenHoursByEvent(Long eventId);
 
-    @Transactional
-    public GoldenHourDTO save(GoldenHourDTO dto) {
-        GoldenHour goldenHour = goldenHourMapper.toEntity(dto);
-        GoldenHour saved = goldenHourRepository.save(goldenHour);
-        return goldenHourMapper.toDTO(saved);
-    }
+    /**
+     * Get current golden hours
+     */
+    List<GoldenHourDTO> getCurrentGoldenHours();
 
-    @Transactional
-    public GoldenHourDTO createGoldenHour(long rewardId, GoldenHourDTO.CreateRequest request) {
-        Reward reward = rewardRepository.findById(rewardId)
-            .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + rewardId));
-            
-        GoldenHour goldenHour = goldenHourMapper.toEntity(request);
-        goldenHour.setReward(reward);
-        
-        GoldenHour saved = goldenHourRepository.save(goldenHour);
-        return goldenHourMapper.toDTO(saved);
-    }
+    /**
+     * Get upcoming golden hours
+     */
+    List<GoldenHourDTO> getUpcomingGoldenHours();
 
-    @Transactional
-    public GoldenHourDTO updateGoldenHour(Long id, GoldenHourDTO.UpdateRequest request) {
-        GoldenHour goldenHour = goldenHourRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("GoldenHour not found with id: " + id));
+    /**
+     * Delete golden hour
+     */
+    void deleteGoldenHour(Long id);
 
-        goldenHourMapper.updateEntity(goldenHour, request);
-        GoldenHour saved = goldenHourRepository.save(goldenHour);
-        return goldenHourMapper.toDTO(saved);
-    }
+    /**
+     * Start golden hour
+     */
+    void startGoldenHour(Long id);
 
-    public List<GoldenHour> findActiveGoldenHoursOrdered(Long rewardId) {
-        return goldenHourRepository.findActiveGoldenHoursOrdered(rewardId);
-    }
+    /**
+     * End golden hour
+     */
+    void endGoldenHour(Long id);
 
-    public Optional<GoldenHour> findActiveGoldenHour(Long rewardId, LocalDateTime currentTime) {
-        return goldenHourRepository.findActiveGoldenHour(rewardId, currentTime);
-    }
+    /**
+     * Update golden hour status
+     */
+    void updateGoldenHourStatus(Long id, String status);
 
-    public boolean existsByEventIdAndName(Long eventId, String name) {
-        return goldenHourRepository.existsByEventIdAndName(eventId, name);
+    /**
+     * Update golden hour time range
+     */
+    void updateGoldenHourTimeRange(Long id, LocalDateTime startTime, LocalDateTime endTime);
+
+    /**
+     * Update golden hour multipliers
+     */
+    void updateGoldenHourMultipliers(Long id, Map<String, Double> multipliers);
+
+    /**
+     * Check if golden hour is active
+     */
+    boolean isGoldenHourActive(Long id);
+
+    /**
+     * Check if current time is in golden hour
+     */
+    boolean isInGoldenHour(Long eventId);
+
+    /**
+     * Get active golden hour for event
+     */
+    Optional<GoldenHour> getActiveGoldenHour(Long eventId);
+
+    /**
+     * Get golden hour multiplier for reward type
+     */
+    double getMultiplierForRewardType(Long goldenHourId, String rewardType);
+
+    /**
+     * Get golden hour win rates
+     */
+    Map<String, Double> getGoldenHourWinRates(Long id);
+
+    /**
+     * Get golden hour statistics
+     */
+    GoldenHourStatistics getGoldenHourStatistics(Long id);
+
+    /**
+     * Schedule golden hour
+     */
+    void scheduleGoldenHour(CreateGoldenHourRequest request);
+
+    /**
+     * Cancel scheduled golden hour
+     */
+    void cancelGoldenHour(Long id);
+
+    /**
+     * Get scheduled golden hours
+     */
+    List<GoldenHourDTO> getScheduledGoldenHours();
+
+    /**
+     * Count golden hours
+     */
+    long countGoldenHours();
+
+    /**
+     * Count active golden hours
+     */
+    long countActiveGoldenHours();
+
+    /**
+     * Golden hour statistics data class
+     */
+    @lombok.Data
+    class GoldenHourStatistics {
+        private final long totalSpins;
+        private final long totalWins;
+        private final Map<String, Integer> rewardTypeDistribution;
+        private final double averageWinRate;
+        private final Map<String, Double> rewardTypeWinRates;
     }
 }

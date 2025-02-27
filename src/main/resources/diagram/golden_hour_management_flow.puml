@@ -1,0 +1,61 @@
+@startuml Golden Hour Management Flow
+
+' Style settings
+skinparam {
+    ArrowColor #666666
+    BackgroundColor white
+    ActivityBackgroundColor white
+    ActivityBorderColor #666666
+    ActivityDiamondBackgroundColor white
+    ActivityDiamondBorderColor #666666
+}
+
+|Admin|
+start
+:Submit golden hour request;
+
+|EventService|
+:Find event by ID;
+if (Event exists?) is (no) then
+    :Return event not found error;
+    end
+endif
+
+|GoldenHourService|
+:Validate golden hour time range;
+if (Valid time range?) is (no) then
+    :Return invalid time range error;
+    end
+endif
+
+:Check for overlapping hours;
+if (Overlapping hours?) is (yes) then
+    :Return overlap error;
+    end
+endif
+
+:Check multiplier value;
+if (Valid multiplier?) is (no) then
+    :Return invalid multiplier error;
+    end
+endif
+
+fork
+    :Create new golden hour;
+fork again
+    :Update existing golden hour;
+fork again
+    :Delete golden hour;
+end fork
+
+:Apply changes;
+if (Success?) is (no) then
+    :Return operation failed error;
+    end
+endif
+
+|Admin|
+:Return operation success;
+stop
+
+@enduml

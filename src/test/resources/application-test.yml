@@ -1,0 +1,47 @@
+spring:
+  profiles: test
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        show_sql: false
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ''
+    driver-class-name: org.h2.Driver
+
+monitoring:
+  performance:
+    report:
+      directory: ${java.io.tmpdir}/performance-reports
+      formats:
+        - text
+        - html
+        - json
+    thresholds:
+      latency:
+        warning: 100
+        critical: 500
+      throughput:
+        minimum: 1000
+      memory:
+        maximum-per-operation: 1024
+    sampling:
+      enabled: true
+      rate: 0.1
+    aggregation:
+      interval: 1000
+      window-size: 10000
+
+logging:
+  level:
+    root: WARN
+    vn.com.fecredit.app: DEBUG
+    org.springframework.test: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

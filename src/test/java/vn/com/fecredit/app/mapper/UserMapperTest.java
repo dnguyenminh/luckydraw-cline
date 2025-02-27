@@ -2,9 +2,10 @@ package vn.com.fecredit.app.mapper;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import vn.com.fecredit.app.dto.UserDto;
-import vn.com.fecredit.app.dto.UserInfoDto;
-import vn.com.fecredit.app.model.User;
+import vn.com.fecredit.app.dto.UserDTO;
+import vn.com.fecredit.app.entity.User;
+// import vn.com.fecredit.app.dto.UserInfoDto;
+// import vn.com.fecredit.app.model.User;
 import vn.com.fecredit.app.util.RoleTestData;
 import vn.com.fecredit.app.util.UserTestData;
 
@@ -23,7 +24,7 @@ class UserMapperTest {
     @Test
     void toDto_shouldMapAllFields() {
         // When
-        UserDto result = mapper.toDto(testUser);
+        UserDTO result = mapper.toDto(testUser);
 
         // Then
         assertThat(result).isNotNull();
@@ -39,7 +40,7 @@ class UserMapperTest {
     @Test
     void toDto_withNullUser_shouldReturnNull() {
         // When
-        UserDto result = mapper.toDto(null);
+        UserDTO result = mapper.toDto(null);
 
         // Then
         assertThat(result).isNull();

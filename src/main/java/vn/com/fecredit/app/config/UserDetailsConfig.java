@@ -1,27 +1,22 @@
 package vn.com.fecredit.app.config;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
 import vn.com.fecredit.app.service.UserService;
 
-/**
- * Configuration class for UserDetailsService.
- * Creates a primary UserDetailsService bean that delegates to UserService.
- */
-@Configuration
-@RequiredArgsConstructor
-public class UserDetailsConfig {
+@Service
+public class UserDetailsConfig implements UserDetailsService {
 
     private final UserService userService;
 
-    @Bean
-    @Primary
-    public UserDetailsService userDetailsService() {
-        return username -> userService.findByEmail(username)
-            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    public UserDetailsConfig(UserService userService) {
+        this.userService = userService;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return userService.loadUserByUsername(username);
     }
 }

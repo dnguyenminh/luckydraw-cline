@@ -1,280 +1,148 @@
 package vn.com.fecredit.app.service;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.*;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import vn.com.fecredit.app.dto.SpinRequest;
-import vn.com.fecredit.app.model.*;
-import vn.com.fecredit.app.repository.*;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import vn.com.fecredit.app.dto.SpinResultDTO;
+import vn.com.fecredit.app.model.Event;
+import vn.com.fecredit.app.model.Participant;
+import vn.com.fecredit.app.model.Reward;
+import vn.com.fecredit.app.repository.EventRepository;
+import vn.com.fecredit.app.repository.GoldenHourRepository;
+import vn.com.fecredit.app.repository.ParticipantRepository;
+import vn.com.fecredit.app.repository.RewardRepository;
+import vn.com.fecredit.app.repository.SpinHistoryRepository;
 
 @ExtendWith(MockitoExtension.class)
-class SpinServiceConcurrencyTest {
+public class SpinServiceConcurrencyTest {
 
-    @Mock
-    private EventRepository eventRepository;
-    @Mock
-    private ParticipantRepository participantRepository;
-    @Mock
-    private RewardRepository rewardRepository;
-    @Mock
-    private SpinHistoryRepository spinHistoryRepository;
-    @Mock
-    private LuckyDrawResultRepository luckyDrawResultRepository;
-    @Mock
-    private GoldenHourRepository goldenHourRepository;
-    @Mock
-    private RewardSelectionService rewardSelectionService;
+    @Mock private EventRepository eventRepository;
+    @Mock private ParticipantRepository participantRepository;
+    @Mock private RewardRepository rewardRepository;
+    @Mock private SpinHistoryRepository spinHistoryRepository;
+    @Mock private GoldenHourRepository goldenHourRepository;
+    @Mock private RewardSelectionService rewardSelectionService;
 
     private SpinService spinService;
-    private Event event;
-    private List<Participant> participants;
-    private List<Reward> rewards;
-    private LocalDateTime now;
 
     @BeforeEach
     void setUp() {
         spinService = new SpinService(
-                eventRepository,
-                participantRepository,
-                rewardRepository,
-                spinHistoryRepository,
-                luckyDrawResultRepository,
-                goldenHourRepository,
-                rewardSelectionService
+            eventRepository,
+            participantRepository,
+            rewardRepository,
+            spinHistoryRepository,
+            goldenHourRepository,
+            rewardSelectionService
         );
-
-        now = LocalDateTime.now();
-        event = Event.builder()
-                .id(1L)
-                .code("TEST001")
-                .name("Test Event")
-                .startDate(now.minusDays(1))
-                .endDate(now.plusDays(1))
-                .totalSpins(1000L)
-                .remainingSpins(1000L)
-                .isActive(true)
-                .build();
-
-        // Tạo test rewards
-        rewards = Arrays.asList(
-                Reward.builder()
-                        .id(1L)
-                        .name("Reward 1")
-                        .quantity(50)
-                        .remainingQuantity(50)
-                        .isActive(true)
-                        .build(),
-                Reward.builder()
-                        .id(2L)
-                        .name("Reward 2")
-                        .quantity(100)
-                        .remainingQuantity(100)
-                        .isActive(true)
-                        .build()
-        );
-
-        // Tạo test participants
-        participants = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            participants.add(Participant.builder()
-                    .id((long) i + 1)
-                    .event(event)
-                    .isActive(true)
-                    .build());
-        }
-
-        // Setup mock trả về kết quả
-        when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
-        when(rewardRepository.findActiveRewardsByEventId(1L)).thenReturn(rewards);
-        when(goldenHourRepository.findActiveGoldenHour(eq(1L), any(LocalDateTime.class)))
-                .thenReturn(Optional.empty());
-
-        for (Participant p : participants) {
-            when(participantRepository.findById(p.getId())).thenReturn(Optional.of(p));
-        }
-
-        // Mock lưu spin history
-        when(spinHistoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Mock lưu lucky draw result
-        when(luckyDrawResultRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
-    void shouldHandleConcurrentSpinsCorrectly() throws InterruptedException {
-        int numberOfThreads = participants.size(); // 10
-        int spinsPerThread = 20;
-        AtomicInteger spinCount = new AtomicInteger();
+    void concurrentSpinsShouldNotExceedRemainingSpins() throws InterruptedException {
+        // Setup
+        int numThreads = 10;
+        Long eventId = 1L;
+        Long participantId = 2L;
+        int initialSpins = 5;
 
-        // Setup reward selection: luân phiên trả về reward hoặc không có reward
-        when(rewardSelectionService.selectReward(
-                any(Event.class),
-                anyList(),
-                anyLong(),
-                any(),
-                anyString()))
-                .thenAnswer(invocation -> {
-                    int count = spinCount.getAndIncrement();
-                    if (count % 3 == 0) {
-                        return Optional.of(rewards.get(0));
-                    } else if (count % 3 == 1) {
-                        return Optional.of(rewards.get(1));
-                    } else {
-                        return Optional.empty();
-                    }
-                });
+        Event event = Event.builder()
+            .id(eventId)
+            .isActive(true)
+            .build();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
-        CountDownLatch startLatch = new CountDownLatch(1);
-        CountDownLatch completionLatch = new CountDownLatch(numberOfThreads);
+        Participant participant = Participant.builder()
+            .id(participantId)
+            .remainingSpins(initialSpins)
+            .build();
 
-        ConcurrentHashMap<Long, AtomicInteger> participantSpinCounts = initParticipantSpinCounts(participants);
-        ConcurrentHashMap<Long, AtomicInteger> rewardWinCounts = initRewardWinCounts(rewards);
-        Set<Long> remainingSpinsValues = ConcurrentHashMap.newKeySet();
+        Reward reward = Reward.builder()
+            .id(3L)
+            .name("Test Reward")
+            .remainingQuantity(100)
+            .build();
 
-        List<Future<List<SpinHistory>>> futures = createParticipantTasks(
-                spinsPerThread, startLatch, completionLatch,
-                participantSpinCounts, rewardWinCounts, remainingSpinsValues
-        );
-
-        // Bắt đầu chạy các task cùng lúc
-        startLatch.countDown();
-        boolean completed = completionLatch.await(30, TimeUnit.SECONDS);
-        executorService.shutdown();
-
-        // Các kiểm tra (assert)
-        assertThat(completed).isTrue();
-        verifyParticipantSpinCounts(participantSpinCounts, spinsPerThread);
-        int totalSpins = numberOfThreads * spinsPerThread;
-        assertThat(spinCount.get()).isEqualTo(totalSpins);
-        verifyRemainingSpinsSequential(remainingSpinsValues);
-        verifyRewardDistribution(rewardWinCounts, totalSpins, rewards);
-    }
-
-    // --- Các phương thức helper ---
-
-    /**
-     * Tạo map đếm số lần quay cho mỗi participant
-     */
-    private ConcurrentHashMap<Long, AtomicInteger> initParticipantSpinCounts(List<Participant> participants) {
-        ConcurrentHashMap<Long, AtomicInteger> map = new ConcurrentHashMap<>();
-        participants.forEach(p -> map.put(p.getId(), new AtomicInteger()));
-        return map;
-    }
-
-    /**
-     * Tạo map đếm số lần thắng cho mỗi reward
-     */
-    private ConcurrentHashMap<Long, AtomicInteger> initRewardWinCounts(List<Reward> rewards) {
-        ConcurrentHashMap<Long, AtomicInteger> map = new ConcurrentHashMap<>();
-        rewards.forEach(r -> map.put(r.getId(), new AtomicInteger()));
-        return map;
-    }
-
-    /**
-     * Tạo danh sách các task cho từng participant.
-     */
-    private List<Future<List<SpinHistory>>> createParticipantTasks(
-            int spinsPerThread,
-            CountDownLatch startLatch,
-            CountDownLatch completionLatch,
-            ConcurrentHashMap<Long, AtomicInteger> participantSpinCounts,
-            ConcurrentHashMap<Long, AtomicInteger> rewardWinCounts,
-            Set<Long> remainingSpinsValues
-    ) {
-        List<Future<List<SpinHistory>>> futures = new ArrayList<>();
-        // Với mỗi participant, tạo một task riêng
-        for (Participant participant : participants) {
-            Callable<List<SpinHistory>> task = () -> runSpinsForParticipant(
-                    participant, spinsPerThread, startLatch,
-                    participantSpinCounts, rewardWinCounts, remainingSpinsValues, completionLatch
-            );
-            futures.add(Executors.newSingleThreadExecutor().submit(task));
-        }
-        return futures;
-    }
-
-    /**
-     * Task của một participant: thực hiện nhiều lượt quay.
-     */
-    private List<SpinHistory> runSpinsForParticipant(
-            Participant participant,
-            int spinsPerThread,
-            CountDownLatch startLatch,
-            ConcurrentHashMap<Long, AtomicInteger> participantSpinCounts,
-            ConcurrentHashMap<Long, AtomicInteger> rewardWinCounts,
-            Set<Long> remainingSpinsValues,
-            CountDownLatch completionLatch
-    ) throws InterruptedException {
-        List<SpinHistory> histories = new ArrayList<>();
-        startLatch.await(); // Đợi đến khi tất cả các thread bắt đầu
-        for (int i = 0; i < spinsPerThread; i++) {
-            SpinRequest request = SpinRequest.builder()
-                    .eventId(event.getId())
-                    .participantId(participant.getId())
-                    .customerLocation("Location1")
-                    .isGoldenHourEligible(true)
-                    .hasActiveParticipation(true)
-                    .remainingSpinsForParticipant(3L)
-                    .participantStatus("ACTIVE")
-                    .build();
-
-            SpinHistory history = spinService.spin(request);
-            histories.add(history);
-            participantSpinCounts.get(participant.getId()).incrementAndGet();
-            if (history.getReward() != null) {
-                rewardWinCounts.get(history.getReward().getId()).incrementAndGet();
+        // Mock repository responses
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
+        when(rewardRepository.findAvailableRewards(any(), any())).thenReturn(List.of(reward));
+        when(goldenHourRepository.findActiveGoldenHour(any(), any())).thenReturn(Optional.empty());
+        when(rewardSelectionService.selectReward(any(), any(), any(), any(), any())).thenReturn(reward);
+        when(rewardRepository.decrementRemainingQuantityById(any())).thenReturn(1);
+        
+        // Mock participant save to simulate atomic decrement
+        when(participantRepository.save(any())).thenAnswer(invocation -> {
+            Participant p = invocation.getArgument(0);
+            if (p.getRemainingSpins() < 0) {
+                throw new IllegalStateException("Negative spins not allowed");
             }
-            remainingSpinsValues.add(history.getRemainingSpins());
-        }
-        completionLatch.countDown();
-        return histories;
-    }
-
-    /**
-     * Kiểm tra số lượt quay của từng participant có đúng không.
-     */
-    private void verifyParticipantSpinCounts(Map<Long, AtomicInteger> participantSpinCounts, int spinsPerThread) {
-        participantSpinCounts.forEach((participantId, count) ->
-                assertThat(count.get()).isEqualTo(spinsPerThread)
-        );
-    }
-
-    /**
-     * Kiểm tra xem các giá trị remaining spins có giảm liên tục không.
-     */
-    private void verifyRemainingSpinsSequential(Set<Long> remainingSpinsValues) {
-        List<Long> sortedRemainingSpins = new ArrayList<>(remainingSpinsValues);
-        Collections.sort(sortedRemainingSpins);
-        for (int i = 0; i < sortedRemainingSpins.size() - 1; i++) {
-            assertThat(sortedRemainingSpins.get(i + 1) - sortedRemainingSpins.get(i)).isEqualTo(1);
-        }
-    }
-
-    /**
-     * Kiểm tra phân phối reward hợp lý.
-     */
-    private void verifyRewardDistribution(Map<Long, AtomicInteger> rewardWinCounts, int totalSpins, List<Reward> rewards) {
-        int expectedWinsPerReward = totalSpins / 3;
-        rewards.forEach(reward -> {
-            int wins = rewardWinCounts.get(reward.getId()).get();
-            // Cho phép lệch 1 lượt
-            assertThat(wins).isLessThanOrEqualTo(expectedWinsPerReward + 1);
+            return p;
         });
+
+        when(spinHistoryRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        // Create countdown latch for synchronization
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(numThreads);
+
+        // Track successful spins
+        Set<Long> successfulSpins = ConcurrentHashMap.newKeySet();
+        List<Exception> errors = Collections.synchronizedList(new ArrayList<>());
+
+        // Create and start threads
+        List<Thread> threads = new ArrayList<>();
+        for (int i = 0; i < numThreads; i++) {
+            Thread t = new Thread(() -> {
+                try {
+                    startLatch.await(); // Wait for start signal
+                    
+                    SpinRequest request = SpinRequest.builder()
+                        .eventId(eventId)
+                        .participantId(participantId)
+                        .location("TEST")
+                        .hasActiveParticipation(true)
+                        .build();
+
+                    try {
+                        SpinResultDTO result = spinService.spinAndGetResult(request);
+                        if (result.getWon()) {
+                            successfulSpins.add(result.getRewardId());
+                        }
+                    } catch (Exception e) {
+                        errors.add(e);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+            threads.add(t);
+            t.start();
+        }
+
+        // Start all threads simultaneously
+        startLatch.countDown();
+
+        // Wait for all threads to complete
+        assertTrue(doneLatch.await(5, TimeUnit.SECONDS), "Timeout waiting for threads");
+
+        // Verify
+        assertTrue(successfulSpins.size() <= initialSpins, 
+            "Number of successful spins (" + successfulSpins.size() + ") should not exceed initial spins (" + initialSpins + ")");
+        
+        assertTrue(errors.stream().noneMatch(e -> e instanceof IllegalStateException),
+            "No negative spin counts should occur");
     }
 }

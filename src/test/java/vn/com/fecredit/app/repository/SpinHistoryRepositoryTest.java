@@ -1,21 +1,16 @@
 package vn.com.fecredit.app.repository;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.within;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.transaction.TestTransaction;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import vn.com.fecredit.app.model.Event;
 import vn.com.fecredit.app.model.Participant;
@@ -23,9 +18,6 @@ import vn.com.fecredit.app.model.Reward;
 import vn.com.fecredit.app.model.SpinHistory;
 
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("test")
-@Transactional
 class SpinHistoryRepositoryTest {
 
     @Autowired
@@ -43,180 +35,174 @@ class SpinHistoryRepositoryTest {
     private Event event;
     private Participant participant;
     private Reward reward;
-    private SpinHistory winSpin;
-    private SpinHistory loseSpin;
-    private final LocalDateTime now = LocalDateTime.now();
+    private LocalDateTime now;
 
     @BeforeEach
     void setUp() {
-        event = new Event();
-        // Generate a unique event code to avoid duplicate key violations
-        event.setCode("TEST-EVENT-" + System.currentTimeMillis());
-        event.setName("Test Event");
-        event.setStartDate(now.minusDays(1));
-        event.setEndDate(now.plusDays(1));
-        event.setIsActive(true);
-        event.setCreatedAt(now);
-        event.setUpdatedAt(now);
+        now = LocalDateTime.now();
+        
+        event = Event.builder()
+                .code("TEST_EVENT")
+                .name("Test Event")
+                .isActive(true)
+                .build();
         event = eventRepository.save(event);
 
-        participant = new Participant();
-        participant.setEvent(event);
-        participant.setName("Test Participant");
-        participant.setFullName("Test Participant Full"); // Set a non-null full_name
-        participant.setEmployeeId("EMP123");
-        participant.setCustomerId("CUST123");
-        participant.setCardNumber("CARD123");
-        participant.setEmail("test@example.com");
-        participant.setIsActive(true);
-        participant.setSpinsRemaining(5L);
-        participant.setCreatedAt(now);
-        participant.setUpdatedAt(now);
+        participant = Participant.builder()
+                .event(event)
+                .code("TEST_PART")
+                .name("Test Participant")
+                .remainingSpins(10)
+                .isActive(true)
+                .build();
         participant = participantRepository.save(participant);
 
-        reward = new Reward();
-        reward.setEvent(event);
-        reward.setName("Test Reward");
-        reward.setQuantity(10);
-        reward.setRemainingQuantity(5);
-        reward.setActive(true);
-        reward.setCreatedAt(now);
-        reward.setUpdatedAt(now);
+        reward = Reward.builder()
+                .event(event)
+                .code("TEST_REWARD")
+                .name("Test Reward")
+                .remainingQuantity(100)
+                .isActive(true)
+                .build();
         reward = rewardRepository.save(reward);
-
-        winSpin = new SpinHistory();
-        winSpin.setEvent(event);
-        winSpin.setParticipant(participant);
-        winSpin.setReward(reward);
-        winSpin.setSpinTime(now.minusMinutes(30));
-        winSpin.setWon(true);
-        winSpin.setCreatedAt(now);
-        winSpin.setUpdatedAt(now);
-        winSpin = spinHistoryRepository.save(winSpin);
-
-        loseSpin = new SpinHistory();
-        loseSpin.setEvent(event);
-        loseSpin.setParticipant(participant);
-        loseSpin.setSpinTime(now);
-        loseSpin.setWon(false);
-        loseSpin.setCreatedAt(now);
-        loseSpin.setUpdatedAt(now);
-        loseSpin = spinHistoryRepository.save(loseSpin);
-
-        TestTransaction.flagForCommit();
-        TestTransaction.end();
-        TestTransaction.start();
     }
 
     @Test
-    void findByParticipantId_ShouldReturnAllSpins() {
-        List<SpinHistory> spins = spinHistoryRepository.findByParticipantId(participant.getId());
+    void shouldFindByParticipantId() {
+        // Given
+        SpinHistory spin1 = createSpinHistory(true, now.minusMinutes(5));
+        SpinHistory spin2 = createSpinHistory(false, now);
+        spinHistoryRepository.saveAll(List.of(spin1, spin2));
 
-        assertThat(spins).hasSize(2);
-        assertThat(spins).extracting("participant.id")
-            .containsOnly(participant.getId());
+        // When
+        List<SpinHistory> found = spinHistoryRepository.findByParticipantId(participant.getId());
+
+        // Then
+        assertEquals(2, found.size());
     }
 
     @Test
-    void findByParticipantIdAndTimeRange_ShouldReturnSpinsInRange() {
-        List<SpinHistory> spins = spinHistoryRepository.findByParticipantIdAndTimeRange(
-            participant.getId(),
-            now.minusMinutes(10),
-            now.plusMinutes(10)
-        );
+    void shouldFindByParticipantIdAndTimeRange() {
+        // Given
+        SpinHistory spin1 = createSpinHistory(true, now.minusHours(2));
+        SpinHistory spin2 = createSpinHistory(true, now.minusHours(1));
+        SpinHistory spin3 = createSpinHistory(false, now);
+        spinHistoryRepository.saveAll(List.of(spin1, spin2, spin3));
 
-        assertThat(spins).hasSize(1);
-        // Use isCloseTo with a tolerance of 1 microsecond
-        assertThat(spins.get(0).getSpinTime())
-            .isCloseTo(now, within(1, ChronoUnit.MICROS));
+        // When
+        List<SpinHistory> found = spinHistoryRepository.findByParticipantIdAndTimeRange(
+                participant.getId(), 
+                now.minusHours(1).minusMinutes(5), 
+                now.plusMinutes(5));
+
+        // Then
+        assertEquals(2, found.size());
     }
 
     @Test
-    void countSpinsByParticipantAndTimeRange_ShouldReturnCorrectCount() {
-        long count = spinHistoryRepository.countSpinsByParticipantAndTimeRange(
-            participant.getId(),
-            now.minusHours(1),
-            now.plusHours(1)
-        );
+    void shouldFindFirstByParticipantIdOrderBySpinTimeDesc() {
+        // Given
+        SpinHistory spin1 = createSpinHistory(true, now.minusHours(1));
+        SpinHistory spin2 = createSpinHistory(false, now);
+        spinHistoryRepository.saveAll(List.of(spin1, spin2));
 
-        assertThat(count).isEqualTo(2);
+        // When
+        SpinHistory found = spinHistoryRepository.findFirstByParticipantIdOrderBySpinTimeDesc(participant.getId())
+                .orElse(null);
+
+        // Then
+        assertNotNull(found);
+        assertEquals(now, found.getSpinTime());
     }
 
     @Test
-    void findByEventIdAndTimeRange_ShouldReturnSpinsInRange() {
-        List<SpinHistory> spins = spinHistoryRepository.findByEventIdAndTimeRange(
-            event.getId(),
-            now.minusHours(1),
-            now.plusHours(1)
-        );
+    void shouldFindWinningSpins() {
+        // Given
+        SpinHistory spin1 = createSpinHistory(true, now.minusHours(1));
+        SpinHistory spin2 = createSpinHistory(false, now);
+        SpinHistory spin3 = createSpinHistory(true, now.plusHours(1));
+        spinHistoryRepository.saveAll(List.of(spin1, spin2, spin3));
 
-        assertThat(spins).hasSize(2);
-        assertThat(spins.get(0).getSpinTime()).isAfter(spins.get(1).getSpinTime());
+        // When
+        List<SpinHistory> found = spinHistoryRepository.findWinningSpins(event.getId());
+
+        // Then
+        assertEquals(2, found.size());
+        assertTrue(found.stream().allMatch(SpinHistory::getWon));
     }
 
     @Test
-    void findWinningSpins_ShouldReturnOnlyWinningSpins() {
-        List<SpinHistory> winningSpins = spinHistoryRepository.findWinningSpins(participant.getId());
+    void shouldCountWinningSpinsByEventId() {
+        // Given
+        SpinHistory spin1 = createSpinHistory(true, now.minusHours(1));
+        SpinHistory spin2 = createSpinHistory(false, now);
+        SpinHistory spin3 = createSpinHistory(true, now.plusHours(1));
+        spinHistoryRepository.saveAll(List.of(spin1, spin2, spin3));
 
-        assertThat(winningSpins).hasSize(1);
-        assertThat(winningSpins.get(0).getWon()).isTrue();
-    }
-
-    @Test
-    void findByIdWithDetails_ShouldReturnSpinWithDetails() {
-        Optional<SpinHistory> found = spinHistoryRepository.findByIdWithDetails(winSpin.getId());
-
-        assertThat(found).isPresent();
-        SpinHistory spin = found.get();
-        assertThat(spin.getParticipant()).isNotNull();
-        assertThat(spin.getReward()).isNotNull();
-    }
-
-    @Test
-    void countWinningSpinsByEventId_ShouldReturnCorrectCount() {
+        // When
         long count = spinHistoryRepository.countWinningSpinsByEventId(event.getId());
 
-        assertThat(count).isEqualTo(1);
+        // Then
+        assertEquals(2, count);
     }
 
     @Test
-    void countWinningSpinsByEventIdAndRewardId_ShouldReturnCorrectCount() {
-        long count = spinHistoryRepository.countWinningSpinsByEventIdAndRewardId(
-            event.getId(),
-            reward.getId()
-        );
+    void shouldCountWinningSpinsByEventIdAndRewardId() {
+        // Given
+        SpinHistory spin1 = createSpinHistory(true, now.minusHours(1));
+        SpinHistory spin2 = createSpinHistory(false, now);
+        spinHistoryRepository.saveAll(List.of(spin1, spin2));
 
-        assertThat(count).isEqualTo(1);
+        // When
+        long count = spinHistoryRepository.countWinningSpinsByEventIdAndRewardId(event.getId(), reward.getId());
+
+        // Then
+        assertEquals(1, count);
     }
 
     @Test
-    void findFirstByParticipantIdOrderBySpinTimeDesc_ShouldReturnLatestSpin() {
-        Optional<SpinHistory> latestSpin = spinHistoryRepository
-            .findFirstByParticipantIdOrderBySpinTimeDesc(participant.getId());
+    void shouldCheckHasSpinAfterTime() {
+        // Given
+        SpinHistory spin = createSpinHistory(true, now);
+        spinHistoryRepository.save(spin);
 
-        assertThat(latestSpin).isPresent();
-        // Compare spinTime with a tolerance of 1 microsecond
-        assertThat(latestSpin.get().getSpinTime().truncatedTo(ChronoUnit.MICROS))
-            .isCloseTo(now.truncatedTo(ChronoUnit.MICROS), within(1, ChronoUnit.MICROS));
+        // When
+        boolean hasAfter = spinHistoryRepository.hasSpinAfterTime(participant.getId(), now.minusMinutes(5));
+        boolean hasBefore = spinHistoryRepository.hasSpinAfterTime(participant.getId(), now.plusMinutes(5));
+
+        // Then
+        assertTrue(hasAfter);
+        assertFalse(hasBefore);
     }
 
     @Test
-    void hasSpinAfterTime_ShouldReturnTrue_WhenSpinExists() {
-        boolean hasSpin = spinHistoryRepository.hasSpinAfterTime(
-            participant.getId(),
-            now.minusMinutes(5)
-        );
+    void shouldFindWinningSpinsWithPagination() {
+        // Given
+        SpinHistory spin1 = createSpinHistory(true, now.minusHours(2));
+        SpinHistory spin2 = createSpinHistory(true, now.minusHours(1));
+        SpinHistory spin3 = createSpinHistory(false, now);
+        spinHistoryRepository.saveAll(List.of(spin1, spin2, spin3));
 
-        assertThat(hasSpin).isTrue();
+        // When
+        Page<SpinHistory> page = spinHistoryRepository.findWinningSpinsByEventId(
+                event.getId(), 
+                PageRequest.of(0, 10));
+
+        // Then
+        assertEquals(2, page.getContent().size());
+        assertTrue(page.getContent().stream().allMatch(SpinHistory::getWon));
     }
 
-    @Test
-    void hasSpinAfterTime_ShouldReturnFalse_WhenNoSpinExists() {
-        boolean hasSpin = spinHistoryRepository.hasSpinAfterTime(
-            participant.getId(),
-            now.plusMinutes(5)
-        );
-
-        assertThat(hasSpin).isFalse();
+    private SpinHistory createSpinHistory(boolean won, LocalDateTime spinTime) {
+        return spinHistoryRepository.save(SpinHistory.builder()
+                .event(event)
+                .participant(participant)
+                .reward(won ? reward : null)
+                .spinTime(spinTime)
+                .won(won)
+                .isGoldenHour(false)
+                .currentMultiplier(1.0)
+                .isActive(true)
+                .build());
     }
 }

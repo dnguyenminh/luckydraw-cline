@@ -1,0 +1,70 @@
+@startuml Event Creation Flow
+
+' Style settings
+skinparam {
+    ArrowColor #666666
+    BackgroundColor white
+    ActivityBackgroundColor white
+    ActivityBorderColor #666666
+    ActivityDiamondBackgroundColor white
+    ActivityDiamondBorderColor #666666
+}
+
+|Admin|
+start
+:Submit event creation request;
+
+|EventService|
+:Validate event dates;
+if (Dates valid?) is (no) then
+    :Return invalid dates error;
+    end
+endif
+
+:Check for active events;
+if (Active event exists?) is (yes) then
+    :Return active event exists error;
+    end
+endif
+
+:Create new event with:
+- Code
+- Name
+- Description
+- Start/End dates;
+
+|EventLocationService|
+:Create event locations with:
+- Location names
+- Total spins
+- Daily spin limits;
+
+|RewardService|
+:Create rewards with:
+- Names
+- Quantities
+- Locations
+- Provinces;
+
+:Validate reward details;
+if (Valid rewards?) is (no) then
+    :Return invalid rewards error;
+    end
+endif
+
+|GoldenHourService|
+:Create golden hours with:
+- Time ranges
+- Multipliers;
+
+:Validate time ranges;
+if (Valid time ranges?) is (no) then
+    :Return invalid time range error;
+    end
+endif
+
+|Admin|
+:Return event creation confirmation;
+stop
+
+@enduml

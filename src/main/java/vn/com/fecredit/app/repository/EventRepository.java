@@ -1,39 +1,42 @@
 package vn.com.fecredit.app.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import vn.com.fecredit.app.model.Event;
+import vn.com.fecredit.app.entity.Event;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
 
+    Optional<Event> findByCode(String code);
     boolean existsByCode(String code);
+    
+    List<Event> findByActiveTrue();
+    long countByActiveTrue();
+    
+    @Query("SELECT e FROM Event e WHERE e.active = true AND e.startDate <= ?1 AND e.endDate >= ?2")
+    List<Event> findByActiveTrueAndStartDateBeforeAndEndDateAfter(LocalDateTime currentTime1, LocalDateTime currentTime2);
+    
+    @Query("SELECT e FROM Event e WHERE e.active = true AND e.startDate > ?1")
+    List<Event> findByActiveTrueAndStartDateAfter(LocalDateTime currentTime);
+    
+    List<Event> findByEndDateBefore(LocalDateTime date);
+    List<Event> findByStartDateBetween(LocalDateTime startDate, LocalDateTime endDate);
 
-    List<Event> findByIsActiveTrue();
+    @Query("SELECT COUNT(e) FROM Event e WHERE e.location.id = ?1")
+    long countByLocationId(Long locationId);
 
-    @Query("SELECT DISTINCT e FROM Event e " +
-           "LEFT JOIN FETCH e.eventLocations " +
-           "LEFT JOIN FETCH e.rewards " +
-           "WHERE e.id = :eventId")
-    Optional<Event> findByIdWithDetails(@Param("eventId") Long eventId);
+    @Query("SELECT e FROM Event e WHERE e.location.id = ?1")
+    List<Event> findByLocationId(Long locationId);
+    
+    @Query("SELECT COUNT(e) FROM Event e WHERE e.status = ?1")
+    long countByStatus(String status);
 
-    @Query("SELECT e FROM Event e " +
-           "WHERE e.isActive = true " +
-           "AND e.remainingSpins > 0")
-    List<Event> findActiveEventsWithRemainingSpins();
-
-    @Query("SELECT COUNT(e) > 0 FROM Event e WHERE e.code = :code")
-    boolean isCodeExists(@Param("code") String code);
-
-    @Query("SELECT e FROM Event e " +
-           "WHERE e.isActive = true " +
-           "AND (e.startDate IS NULL OR e.startDate <= CURRENT_TIMESTAMP) " +
-           "AND (e.endDate IS NULL OR e.endDate >= CURRENT_TIMESTAMP)")
-    List<Event> findCurrentlyActiveEvents();
+    @Query("SELECT e FROM Event e WHERE LOWER(e.status) = LOWER(?1)")
+    List<Event> findByStatusIgnoreCase(String status);
 }

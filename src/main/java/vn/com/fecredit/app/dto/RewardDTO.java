@@ -1,92 +1,39 @@
 package vn.com.fecredit.app.dto;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class RewardDTO {
-    private Long id;
-    private Long eventId;
-    private String eventName;
-    private Long eventRegionId;
-    private String code;
-    private String name;
-    private String description;
-    private String applicableProvinces;
-    private Integer quantity;
-    private Integer remainingQuantity;
-    private Double probability;
-    private Integer maxQuantityInPeriod;
-    private LocalDateTime startDate;
-    private LocalDateTime endDate;
-    private Boolean isActive;
-    @Builder.Default
-    private List<GoldenHourDTO> goldenHours = new ArrayList<>();
-    private Long version;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
-    public boolean isActive() {
-        return Boolean.TRUE.equals(isActive);
-    }
-
-    public void setActive(boolean active) {
-        this.isActive = active;
-    }
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CreateRewardRequest {
-        @NotNull(message = "Event ID is required")
+        @NotNull
         private Long eventId;
 
-        private Long eventRegionId;
-
-        private String code;
-
-        @NotBlank(message = "Name is required")
+        @NotBlank
+        @Size(max = 100)
         private String name;
 
+        @Size(max = 500)
         private String description;
 
-        private String applicableProvinces;
-
-        @NotNull(message = "Quantity is required")
-        @Min(value = 0, message = "Quantity must be greater than or equal to 0")
+        @NotNull
         private Integer quantity;
-
-        @NotNull(message = "Probability is required")
-        @Min(value = 0, message = "Probability must be greater than or equal to 0")
+        
+        private Integer remainingQuantity;
         private Double probability;
-
-        private Integer maxQuantityInPeriod;
+        private Boolean active;
         private LocalDateTime startDate;
         private LocalDateTime endDate;
-        private Boolean isActive;
-        @Builder.Default
-        private List<GoldenHourDTO> goldenHours = new ArrayList<>();
-
-        public boolean isActive() {
-            return Boolean.TRUE.equals(isActive);
-        }
-
-        public void setActive(boolean active) {
-            this.isActive = active;
-        }
     }
 
     @Data
@@ -94,25 +41,98 @@ public class RewardDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UpdateRewardRequest {
-        private String code;
+        @Size(max = 100)
         private String name;
+
+        @Size(max = 500)
         private String description;
-        private String applicableProvinces;
+
         private Integer quantity;
+        private Integer remainingQuantity;
         private Double probability;
-        private Integer maxQuantityInPeriod;
+        private Boolean active;
         private LocalDateTime startDate;
         private LocalDateTime endDate;
-        private Boolean isActive;
-        @Builder.Default
-        private List<GoldenHourDTO> goldenHours = new ArrayList<>();
+    }
 
-        public boolean isActive() {
-            return Boolean.TRUE.equals(isActive);
-        }
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RewardResponse {
+        private Long id;
+        private Long eventId;
+        private String eventName;
+        private String name;
+        private String description;
+        private Integer quantity;
+        private Integer remainingQuantity;
+        private Double probability;
+        private Double effectiveProbability;
+        private boolean active;
+        private LocalDateTime startDate;
+        private LocalDateTime endDate;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+        private RewardStatistics statistics;
+    }
 
-        public void setActive(boolean active) {
-            this.isActive = active;
-        }
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RewardSummary {
+        private Long id;
+        private String name;
+        private Integer remainingQuantity;
+        private Double probability;
+        private boolean active;
+        private LocalDateTime endDate;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RewardStatistics {
+        private Integer totalWins;
+        private Integer totalSpins;
+        private Double actualWinRate;
+        private Double theoreticalWinRate;
+        private Double averageProbabilityMultiplier;
+        private Integer winsToday;
+        private Integer winsThisWeek;
+        private Integer winsThisMonth;
+        private LocalDateTime lastWinDate;
+        private Long estimatedRemainingDays;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RewardAvailability {
+        private boolean available;
+        private boolean active;
+        private boolean hasQuantityRemaining;
+        private boolean withinValidPeriod;
+        private Integer remainingQuantity;
+        private LocalDateTime endDate;
+        private Double currentProbability;
+        private Double baselineProbability;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class WinningProbability {
+        private Double baseProbability;
+        private Double goldenHourMultiplier;
+        private Double locationMultiplier;
+        private Double finalProbability;
+        private Integer remainingQuantity;
+        private Boolean withinGoldenHour;
+        private LocalDateTime calculatedAt;
     }
 }

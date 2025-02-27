@@ -35,4 +35,32 @@ out/
 
 ### VS Code ###
 .vscode/
-/logs/
+
+### Maven ###
+target/
+pom.xml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+### Logs ###
+logs/
+*.log
+
+### System Files ###
+.DS_Store
+Thumbs.db
+
+### Generated Documentation ###
+openapi.json
+/docs/
+
+### Compiled files ###
+*.class
+*.jar
+!gradle-wrapper.jar

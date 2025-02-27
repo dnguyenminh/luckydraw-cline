@@ -2,154 +2,212 @@ package vn.com.fecredit.app.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
-import vn.com.fecredit.app.dto.EventDTO;
+import vn.com.fecredit.app.entity.Event;
+import vn.com.fecredit.app.entity.Participant;
 import vn.com.fecredit.app.mapper.EventMapper;
-import vn.com.fecredit.app.model.Event;
-import vn.com.fecredit.app.model.Participant;
 import vn.com.fecredit.app.repository.EventRepository;
+import vn.com.fecredit.app.repository.ParticipantRepository;
+import vn.com.fecredit.app.service.impl.EventServiceImpl;
+import vn.com.fecredit.app.dto.event.CreateEventRequest;
+import vn.com.fecredit.app.dto.event.UpdateEventRequest;
+import vn.com.fecredit.app.dto.event.EventResponse;
+import vn.com.fecredit.app.dto.event.EventSummary;
 
-@ExtendWith(MockitoExtension.class)
-class EventServiceTest {
+public class EventServiceTest {
 
     @Mock
     private EventRepository eventRepository;
 
+    @Mock
+    private ParticipantRepository participantRepository;
+
+    @Mock
     private EventMapper eventMapper;
-    private EventService eventService;
-    private LocalDateTime now;
+
+    @InjectMocks
+    private EventServiceImpl eventService;
 
     @BeforeEach
     void setUp() {
-        eventMapper = new EventMapper();
-        eventService = new EventService(eventRepository, eventMapper);
-        now = LocalDateTime.now();
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    @DisplayName("Should create event with audit fields")
-    void shouldCreateEventWithAuditFields() {
+    void createEvent_Success() {
         // Given
-        EventDTO.CreateEventRequest request = createValidEventRequest();
-        Event event = Event.builder()
-                .id(1L)
-                .name("Test Event")
-                .code("TEST_EVENT")
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
-        when(eventRepository.save(any(Event.class))).thenReturn(event);
+        var request = createValidEventRequest();
+        var mockEvent = createValidEvent();
+        var mockResponse = createValidEventResponse();
+
+        when(eventMapper.createEntityFromRequest(any())).thenReturn(mockEvent);
+        when(eventRepository.save(any(Event.class))).thenReturn(mockEvent);
+        when(eventMapper.toResponse(mockEvent)).thenReturn(mockResponse);
 
         // When
-        EventDTO result = eventService.createEvent(request);
+        var result = eventService.createEvent(request);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getCreatedAt()).isNotNull();
-        assertThat(result.getUpdatedAt()).isNotNull();
+        assertThat(result.getStartDate()).isEqualTo(mockResponse.getStartDate());
+        assertThat(result.getEndDate()).isEqualTo(mockResponse.getEndDate());
+        verify(eventRepository).save(any(Event.class));
     }
 
     @Test
-    @DisplayName("Should manage event rewards")
-    void shouldManageEventRewards() {
+    void getEventById_Success() {
         // Given
-        Event event = new Event();
-        event.setId(1L);
-        event.setRewards(new HashSet<>());
+        var mockEvent = createValidEvent();
+        var mockResponse = createValidEventResponse();
 
-        // When testing reward management, we'll only verify the collection operations
-        assertThat(event.getRewards()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should update event timestamps")
-    void shouldUpdateEventTimestamps() {
-        // Given
-        Event existingEvent = Event.builder()
-                .id(1L)
-                .createdAt(now.minusDays(1))
-                .updatedAt(now)
-                .build();
-        
-        EventDTO.UpdateEventRequest request = createValidUpdateRequest();
-        when(eventRepository.findById(1L)).thenReturn(Optional.of(existingEvent));
-        when(eventRepository.save(any(Event.class))).thenReturn(existingEvent);
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(mockEvent));
+        when(eventMapper.toResponse(mockEvent)).thenReturn(mockResponse);
 
         // When
-        EventDTO result = eventService.updateEvent(1L, request);
+        var result = eventService.getEventById(1L);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getUpdatedAt()).isAfterOrEqualTo(result.getCreatedAt());
+        assertThat(result.getId()).isEqualTo(mockResponse.getId());
     }
 
-    @Nested
-    @DisplayName("Participant Eligibility Tests")
-    class ParticipantEligibilityTests {
+    @Test
+    void updateEvent_Success() {
+        // Given
+        var mockEvent = createValidEvent();
+        var request = createValidUpdateRequest();
+        var mockResponse = createValidEventResponse();
 
-        @Test
-        @DisplayName("Should be eligible when all conditions are met")
-        void shouldBeEligibleWhenAllConditionsAreMet() {
-            // Given
-            Long eventId = 1L;
-            Long participantId = 1L;
-            
-            Event event = Event.builder()
-                    .id(eventId)
-                    .startDate(now.minusDays(1))
-                    .endDate(now.plusDays(5))
-                    .isActive(true)
-                    .build();
-            
-            Participant participant = Participant.builder()
-                    .id(participantId)
-                    .spinsRemaining(3L)
-                    .build();
-            
-            event.setParticipants(new HashSet<>());
-            event.getParticipants().add(participant);
-            
-            when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(mockEvent));
+        when(eventRepository.save(any(Event.class))).thenReturn(mockEvent);
+        when(eventMapper.toResponse(mockEvent)).thenReturn(mockResponse);
 
-            // When
-            boolean result = eventService.isParticipantEligible(eventId, participantId);
+        // When
+        var result = eventService.updateEvent(1L, request);
 
-            // Then
-            assertThat(result).isTrue();
-        }
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getStartDate()).isEqualTo(mockResponse.getStartDate());
+        assertThat(result.getEndDate()).isEqualTo(mockResponse.getEndDate());
+        verify(eventRepository).save(any(Event.class));
     }
 
-    private EventDTO.CreateEventRequest createValidEventRequest() {
-        return EventDTO.CreateEventRequest.builder()
+    @Test
+    void getActiveEvents_Success() {
+        // Given
+        var mockEvents = Arrays.asList(createValidEvent());
+        var mockSummaries = Arrays.asList(createValidEventSummary());
+
+        when(eventRepository.findByActiveTrue()).thenReturn(mockEvents);
+        when(eventMapper.toSummaryList(mockEvents)).thenReturn(mockSummaries);
+
+        // When
+        var results = eventService.getActiveEvents();
+
+        // Then
+        assertThat(results).isNotEmpty();
+        assertThat(results).hasSize(1);
+    }
+
+    @Test
+    void isParticipantEligible_Success() {
+        // Given
+        var mockEvent = createValidEvent();
+        var mockParticipant = Participant.builder()
+                .id(1L)
+                .event(mockEvent)
+                .active(true)
+                .build();
+
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(mockEvent));
+        when(participantRepository.findById(1L)).thenReturn(Optional.of(mockParticipant));
+
+        // When
+        var result = eventService.checkParticipantEligibility(1L, 1L);
+
+        // Then
+        assertThat(result).isTrue();
+    }
+
+    private CreateEventRequest createValidEventRequest() {
+        return CreateEventRequest.builder()
+                .code("TEST-EVENT")
                 .name("Test Event")
-                .code("TEST_EVENT")
                 .description("Test Description")
-                .startDate(now.plusDays(1))
-                .endDate(now.plusDays(7))
-                .isActive(true)
+                .startDate(LocalDateTime.now())
+                .endDate(LocalDateTime.now().plusDays(7))
+                .dailySpinLimit(10)
+                .totalSpins(100)
+                .active(true)
                 .build();
     }
 
-    private EventDTO.UpdateEventRequest createValidUpdateRequest() {
-        return EventDTO.UpdateEventRequest.builder()
+    private UpdateEventRequest createValidUpdateRequest() {
+        return UpdateEventRequest.builder()
                 .name("Updated Event")
                 .description("Updated Description")
-                .startDate(now.plusDays(1))
-                .endDate(now.plusDays(7))
-                .isActive(true)
+                .startDate(LocalDateTime.now())
+                .endDate(LocalDateTime.now().plusDays(14))
+                .dailySpinLimit(20)
+                .totalSpins(200)
+                .active(true)
+                .build();
+    }
+
+    private Event createValidEvent() {
+        return Event.builder()
+                .id(1L)
+                .code("TEST-EVENT")
+                .name("Test Event")
+                .description("Test Description")
+                .startDate(LocalDateTime.now())
+                .endDate(LocalDateTime.now().plusDays(7))
+                .dailySpinLimit(10)
+                .totalSpins(100)
+                .remainingSpins(100)
+                .active(true)
+                .deleted(false)
+                .build();
+    }
+
+    private EventResponse createValidEventResponse() {
+        return EventResponse.builder()
+                .id(1L)
+                .code("TEST-EVENT")
+                .name("Test Event")
+                .description("Test Description")
+                .startDate(LocalDateTime.now())
+                .endDate(LocalDateTime.now().plusDays(7))
+                .dailySpinLimit(10)
+                .totalSpins(100)
+                .remainingSpins(100)
+                .active(true)
+                .deleted(false)
+                .build();
+    }
+
+    private EventSummary createValidEventSummary() {
+        return EventSummary.builder()
+                .id(1L)
+                .code("TEST-EVENT")
+                .name("Test Event")
+                .startDate(LocalDateTime.now())
+                .endDate(LocalDateTime.now().plusDays(7))
+                .remainingSpins(100)
+                .active(true)
                 .build();
     }
 }

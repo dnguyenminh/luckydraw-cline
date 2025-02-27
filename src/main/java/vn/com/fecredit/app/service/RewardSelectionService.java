@@ -1,92 +1,130 @@
 package vn.com.fecredit.app.service;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
+import vn.com.fecredit.app.dto.RewardDTO;
+import vn.com.fecredit.app.entity.Event;
+import vn.com.fecredit.app.entity.Participant;
+import vn.com.fecredit.app.entity.Reward;
+import vn.com.fecredit.app.model.SpinResultResponse;
+
 import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.Map;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+public interface RewardSelectionService {
 
-import lombok.RequiredArgsConstructor;
-import vn.com.fecredit.app.model.Event;
-import vn.com.fecredit.app.model.GoldenHour;
-import vn.com.fecredit.app.model.Reward;
-import vn.com.fecredit.app.repository.EventRepository;
-import vn.com.fecredit.app.repository.RewardRepository;
+    /**
+     * Select a reward for participant in event
+     */
+    SpinResultResponse selectReward(Long eventId, Long participantId);
 
-@Service
-@RequiredArgsConstructor
-public class RewardSelectionService {
+    /**
+     * Select reward based on probabilities
+     */
+    Reward selectRewardByProbability(List<Reward> rewards);
 
-    private final RewardRepository rewardRepository;
-    private final EventRepository eventRepository;
-    private final Random random = new Random();
+    /**
+     * Get available rewards for event and participant
+     */
+    List<Reward> getAvailableRewards(Long eventId, Long participantId);
 
-    @Transactional
-    public Optional<Reward> selectReward(Event event, List<Reward> availableRewards, 
-                                      long spinId, Optional<GoldenHour> activeGoldenHour, 
-                                      String province) {
-        if (!event.isActive()) {
-            return Optional.empty();
-        }
+    /**
+     * Calculate reward probabilities
+     */
+    Map<Reward, Double> calculateProbabilities(List<Reward> rewards);
 
-        List<Reward> eligibleRewards;
-        if (activeGoldenHour.isPresent()) {
-            eligibleRewards = new ArrayList<>();
-            eligibleRewards.add(activeGoldenHour.get().getReward());
-        } else {
-            eligibleRewards = filterEligibleRewards(availableRewards, province);
-        }
+    /**
+     * Adjust probabilities based on factors
+     */
+    Map<Reward, Double> adjustProbabilities(Map<Reward, Double> probabilities, 
+                                          Event event, 
+                                          Participant participant);
 
-        if (eligibleRewards.isEmpty()) {
-            return Optional.empty();
-        }
+    /**
+     * Check if participant can receive reward
+     */
+    boolean canReceiveReward(Long eventId, Long participantId, Long rewardId);
 
-        double totalProbability = eligibleRewards.stream()
-            .mapToDouble(Reward::getProbability)
-            .sum();
+    /**
+     * Validate spin attempt
+     */
+    void validateSpinAttempt(Long eventId, Long participantId);
 
-        if (totalProbability <= 0) {
-            return Optional.empty();
-        }
+    /**
+     * Process reward selection
+     */
+    void processRewardSelection(Long eventId, Long participantId, Long rewardId);
 
-        synchronized (this) {
-            double randomValue = random.nextDouble() * totalProbability;
-            double cumulativeProbability = 0;
+    /**
+     * Record spin history
+     */
+    void recordSpinHistory(Long eventId, Long participantId, Long rewardId);
 
-            for (Reward reward : eligibleRewards) {
-                cumulativeProbability += reward.getProbability();
-                if (randomValue <= cumulativeProbability) {
-                    if (reward.getRemainingQuantity() > 0) {
-                        reward.decrementRemainingQuantity();
-                        rewardRepository.save(reward);
-                        return Optional.of(reward);
-                    }
-                }
-            }
-        }
+    /**
+     * Update participant statistics
+     */
+    void updateParticipantStats(Long participantId, Reward reward);
 
-        return Optional.empty();
-    }
+    /**
+     * Update event statistics
+     */
+    void updateEventStats(Long eventId, Reward reward);
 
-    @Transactional
-    public Optional<Reward> selectReward(Long eventId, String province) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("Event not found with id: " + eventId));
+    /**
+     * Update reward statistics
+     */
+    void updateRewardStats(Long rewardId);
 
-        List<Reward> availableRewards = rewardRepository.findAvailableRewards(eventId, LocalDateTime.now());
-        return selectReward(event, availableRewards, 0L, Optional.empty(), province);
-    }
+    /**
+     * Get spin result details
+     */
+    SpinResultResponse getSpinResult(Long spinHistoryId);
 
-    private List<Reward> filterEligibleRewards(List<Reward> rewards, String province) {
-        List<Reward> eligibleRewards = new ArrayList<>();
-        for (Reward reward : rewards) {
-            if (reward.isAvailable(LocalDateTime.now(), province)) {
-                eligibleRewards.add(reward);
-            }
-        }
-        return eligibleRewards;
-    }
+    /**
+     * Get participant's winning probability
+     */
+    double getWinningProbability(Long eventId, Long participantId);
+
+    /**
+     * Get reward distribution statistics
+     */
+    Map<String, Object> getRewardDistributionStats(Long eventId);
+
+    /**
+     * Get win rate by reward type
+     */
+    Map<String, Double> getWinRateByRewardType(Long eventId);
+
+    /**
+     * Get win rate by time period
+     */
+    Map<String, Double> getWinRateByTimePeriod(Long eventId);
+
+    /**
+     * Check if maximum rewards limit reached
+     */
+    boolean isMaxRewardsReached(Long eventId);
+
+    /**
+     * Check if maximum rewards per type reached
+     */
+    boolean isMaxRewardsPerTypeReached(Long eventId, String rewardType);
+
+    /**
+     * Check if maximum rewards per participant reached
+     */
+    boolean isMaxRewardsPerParticipantReached(Long eventId, Long participantId);
+
+    /**
+     * Apply golden hour rules
+     */
+    void applyGoldenHourRules(Map<Reward, Double> probabilities, Long eventId);
+
+    /**
+     * Check if spin cooldown period passed
+     */
+    boolean isSpinCooldownPassed(Long participantId);
+
+    /**
+     * Reset daily spin counts
+     */
+    void resetDailySpinCounts();
 }

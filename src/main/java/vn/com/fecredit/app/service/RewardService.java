@@ -1,146 +1,170 @@
 package vn.com.fecredit.app.service;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-
-import lombok.RequiredArgsConstructor;
-import vn.com.fecredit.app.dto.GoldenHourDTO;
+import org.springframework.data.domain.Page;
+import vn.com.fecredit.app.dto.common.PageRequest;
+import vn.com.fecredit.app.dto.common.SearchRequest;
 import vn.com.fecredit.app.dto.RewardDTO;
-import vn.com.fecredit.app.exception.ResourceNotFoundException;
-import vn.com.fecredit.app.mapper.GoldenHourMapper;
-import vn.com.fecredit.app.mapper.RewardMapper;
-import vn.com.fecredit.app.model.GoldenHour;
-import vn.com.fecredit.app.model.Reward;
-import vn.com.fecredit.app.repository.GoldenHourRepository;
-import vn.com.fecredit.app.repository.RewardRepository;
+import vn.com.fecredit.app.entity.Reward;
+import vn.com.fecredit.app.model.CreateRewardRequest;
+import vn.com.fecredit.app.model.UpdateRewardRequest;
 
-@Slf4j
-@Service
-@Transactional
-@RequiredArgsConstructor
-public class RewardService {
+import java.util.List;
+import java.util.Optional;
 
-    private static final Logger logger = LoggerFactory.getLogger(RewardService.class);
+public interface RewardService {
 
-    private final RewardRepository rewardRepository;
-    private final RewardMapper rewardMapper;
-    private final GoldenHourRepository goldenHourRepository;
-    private final GoldenHourMapper goldenHourMapper;
-    private final EntityManager entityManager;
+    /**
+     * Create new reward
+     */
+    RewardDTO createReward(CreateRewardRequest request);
 
-    @Transactional(readOnly = true)
-    public List<RewardDTO> getAllRewards() {
-        return rewardRepository.findAll().stream()
-                .map(rewardMapper::toDTO)
-                .collect(Collectors.toList());
-    }
+    /**
+     * Update reward
+     */
+    RewardDTO updateReward(Long id, UpdateRewardRequest request);
 
-    @Transactional(readOnly = true)
-    public RewardDTO getRewardById(Long id) {
-        return rewardRepository.findById(id)
-                .map(rewardMapper::toDTO)
-                .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + id));
-    }
+    /**
+     * Get reward by ID
+     */
+    RewardDTO getRewardById(Long id);
 
-    public RewardDTO createReward(RewardDTO.CreateRewardRequest request) {
-        Reward reward = rewardMapper.toEntity(request);
-        reward = rewardRepository.save(reward);
-        return rewardMapper.toDTO(reward);
-    }
+    /**
+     * Get reward by code
+     */
+    RewardDTO getRewardByCode(String code);
 
-    public RewardDTO updateReward(Long id, RewardDTO.UpdateRewardRequest request) {
-        Reward reward = rewardRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + id));
+    /**
+     * Get reward entity by code
+     */
+    Optional<Reward> findByCode(String code);
 
-        rewardMapper.updateRewardFromRequest(request, reward);
-        reward = rewardRepository.save(reward);
-        return rewardMapper.toDTO(reward);
-    }
+    /**
+     * Get all rewards
+     */
+    List<RewardDTO> getAllRewards();
 
-    public RewardDTO updateQuantity(Long id, Integer quantity) {
-        Reward reward = rewardRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + id));
+    /**
+     * Get all active rewards
+     */
+    List<RewardDTO> getActiveRewards();
 
-        reward.setQuantity(quantity);
-        if (quantity < reward.getRemainingQuantity()) {
-            reward.setRemainingQuantity(quantity);
-        }
-        reward = rewardRepository.save(reward);
-        return rewardMapper.toDTO(reward);
-    }
+    /**
+     * Get paginated rewards
+     */
+    Page<RewardDTO> getRewards(PageRequest pageRequest);
 
-    public void deleteReward(Long id) {
-        if (!rewardRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Reward not found with id: " + id);
-        }
-        rewardRepository.deleteById(id);
-    }
+    /**
+     * Search rewards
+     */
+    Page<RewardDTO> searchRewards(SearchRequest searchRequest);
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public boolean decrementRemainingQuantity(Long id) {
-        try {
-            // Fetch the reward entity
-            Reward reward = rewardRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Reward not found"));
+    /**
+     * Get rewards by event ID
+     */
+    List<RewardDTO> getRewardsByEventId(Long eventId);
 
-            // Apply pessimistic write lock
-//            entityManager.lock(reward, LockModeType.PESSIMISTIC_WRITE);
+    /**
+     * Get rewards by type
+     */
+    List<RewardDTO> getRewardsByType(String type);
 
-            // Check if remaining quantity is available
-            if (reward.getRemainingQuantity() > 0) {
-//                reward.setRemainingQuantity(reward.getRemainingQuantity() - 1);
-//                rewardRepository.save(reward);
-                int updateCount = rewardRepository.decrementRemainingQuantity(id);
-                return updateCount > 0;
-            } else {
-                return false; // Quantity is already zero, cannot decrement
-            }
-        } catch (Exception e) {
-            log.error("Error decrementing remaining quantity for reward {}: {}", id, e.getMessage());
-            throw e; // or handle accordingly
-        }
-    }
+    /**
+     * Delete reward
+     */
+    void deleteReward(Long id);
 
-    @Transactional
-    public RewardDTO addGoldenHour(Long rewardId, GoldenHourDTO.CreateRequest request) {
-        Reward reward = rewardRepository.findById(rewardId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + rewardId));
+    /**
+     * Update reward status
+     */
+    void updateRewardStatus(Long id, boolean active);
 
-        GoldenHour goldenHour = goldenHourMapper.toEntity(request);
-        goldenHour.setReward(reward);
-        goldenHourRepository.save(goldenHour);
+    /**
+     * Update reward quantity
+     */
+    void updateRewardQuantity(Long id, int quantity);
 
-        reward.getGoldenHours().add(goldenHour);
-        Reward savedReward = rewardRepository.save(reward);
+    /**
+     * Add reward quantity
+     */
+    void addRewardQuantity(Long id, int additionalQuantity);
 
-        return rewardMapper.toDTO(savedReward);
-    }
+    /**
+     * Deduct reward quantity
+     */
+    void deductRewardQuantity(Long id, int deductQuantity);
 
-    @Transactional
-    public RewardDTO removeGoldenHour(Long rewardId, Long goldenHourId) {
-        Reward reward = rewardRepository.findById(rewardId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reward not found with id: " + rewardId));
+    /**
+     * Check if reward is available
+     */
+    boolean isRewardAvailable(Long id);
 
-        GoldenHour goldenHour = goldenHourRepository.findById(goldenHourId)
-                .orElseThrow(() -> new ResourceNotFoundException("Golden hour not found with id: " + goldenHourId));
+    /**
+     * Get remaining quantity
+     */
+    int getRemainingQuantity(Long id);
 
-        if (!goldenHour.getReward().getId().equals(rewardId)) {
-            throw new IllegalArgumentException("Golden hour does not belong to this reward");
-        }
+    /**
+     * Get used quantity
+     */
+    int getUsedQuantity(Long id);
 
-        reward.getGoldenHours().remove(goldenHour);
-        goldenHourRepository.delete(goldenHour);
-        Reward savedReward = rewardRepository.save(reward);
+    /**
+     * Update reward probability
+     */
+    void updateRewardProbability(Long id, Double probability);
 
-        return rewardMapper.toDTO(savedReward);
-    }
+    /**
+     * Update reward value
+     */
+    void updateRewardValue(Long id, Double value);
+
+    /**
+     * Update reward points
+     */
+    void updateRewardPoints(Long id, Integer points);
+
+    /**
+     * Check if reward code exists
+     */
+    boolean existsByCode(String code);
+
+    /**
+     * Count rewards
+     */
+    long countRewards();
+
+    /**
+     * Count active rewards
+     */
+    long countActiveRewards();
+
+    /**
+     * Count rewards by event
+     */
+    long countRewardsByEvent(Long eventId);
+
+    /**
+     * Count rewards by type
+     */
+    long countRewardsByType(String type);
+
+    /**
+     * Get total value of rewards
+     */
+    double getTotalRewardsValue();
+
+    /**
+     * Get total points of rewards
+     */
+    int getTotalRewardsPoints();
+
+    /**
+     * Get reward win rate
+     */
+    double getRewardWinRate(Long id);
+
+    /**
+     * Get available reward types
+     */
+    List<String> getAvailableRewardTypes();
 }

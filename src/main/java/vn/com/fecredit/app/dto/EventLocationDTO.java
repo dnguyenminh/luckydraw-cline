@@ -1,11 +1,9 @@
 package vn.com.fecredit.app.dto;
 
-import java.time.LocalDateTime;
+import lombok.*;
+import vn.com.fecredit.app.enums.EntityStatus;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -13,14 +11,79 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EventLocationDTO {
     private Long id;
+    private String name;
+    private String province;
+    private String district;
+    private String ward;
+    private String address;
+    private String city;
     private Long eventId;
     private String eventName;
-    private String name;
-    private String location;
-    private Long totalSpins;
-    private Long remainingSpins;
-    private boolean active;
-    private Long version;
+    private EntityStatus status;
+    private Boolean isActive;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private String createdBy;
+    private LocalDateTime lastModifiedAt;
+    private String lastModifiedBy;
+    private LocalDateTime deletedAt;
+    private String deletedBy;
+    private Long version;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CreateRequest {
+        private String name;
+        private String province;
+        private String district;
+        private String ward;
+        private String address;
+        private String city;
+        private Long eventId;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UpdateRequest {
+        private Long id;
+        private String name;
+        private String province;
+        private String district;
+        private String ward;
+        private String address;
+        private String city;
+        private Boolean isActive;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EventLocationResponse {
+        private Long id;
+        private String name;
+        private String province;
+        private String district;
+        private String ward; 
+        private String address;
+        private String city;
+        private Boolean isActive;
+        private LocalDateTime createdAt;
+        private String createdBy;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EventLocationSummary {
+        private Long id;
+        private String name;
+        private String province;
+        private String city;
+        private Boolean isActive;
+    }
 }
