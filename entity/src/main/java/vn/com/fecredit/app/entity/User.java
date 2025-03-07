@@ -153,27 +153,6 @@ public class User extends AbstractStatusAwareEntity {
         return roles.stream().anyMatch(r -> r.isActive() && r.getName().equals(roleName));
     }
 
-//    public void setEnabled(boolean enabled) {
-//        this.enabled = enabled;
-//    }
-
-
-
-
-//    public String getFullName() {
-//        StringBuilder sb = new StringBuilder();
-//        if (firstName != null) {
-//            sb.append(firstName);
-//        }
-//        if (lastName != null) {
-//            if (sb.length() > 0) {
-//                sb.append(" ");
-//            }
-//            sb.append(lastName);
-//        }
-//        return sb.length() > 0 ? sb.toString() : null;
-//    }
-
     public void incrementFailedAttempts() {
         this.failedAttempts++;
     }

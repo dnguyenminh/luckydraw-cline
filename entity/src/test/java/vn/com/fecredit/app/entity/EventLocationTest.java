@@ -27,9 +27,9 @@ class EventLocationTest extends BaseEntityTest {
             .startTime(LocalDateTime.now().minusDays(1))
             .endTime(LocalDateTime.now().plusDays(1))
             .eventLocations(new LinkedHashSet<>())
-            .rewards(new LinkedHashSet<>())
-            .goldenHours(new LinkedHashSet<>())
-            .spinHistories(new LinkedHashSet<>())
+//            .rewards(new LinkedHashSet<>())
+//            .goldenHours(new LinkedHashSet<>())
+//            .spinHistories(new LinkedHashSet<>())
             .build();
 
         // Create region in active state
@@ -91,9 +91,9 @@ class EventLocationTest extends BaseEntityTest {
             .endTime(LocalDateTime.now().plusDays(1))
             .status(Event.STATUS_ACTIVE)
             .eventLocations(new LinkedHashSet<>())
-            .rewards(new LinkedHashSet<>())
-            .goldenHours(new LinkedHashSet<>())
-            .spinHistories(new LinkedHashSet<>())
+//            .rewards(new LinkedHashSet<>())
+//            .goldenHours(new LinkedHashSet<>())
+//            .spinHistories(new LinkedHashSet<>())
             .build();
 
         // Reset location configuration and status

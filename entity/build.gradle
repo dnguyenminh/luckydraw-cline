@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'org.springframework.boot' apply false
     id 'io.spring.dependency-management'
+    id 'org.flywaydb.flyway' version '9.16.0'
 }
 
 group = 'vn.com.fecredit'
@@ -22,6 +23,9 @@ dependencies {
     api 'org.hibernate.validator:hibernate-validator'
     api 'jakarta.validation:jakarta.validation-api'
 
+    implementation 'org.postgresql:postgresql'
+    implementation 'org.flywaydb:flyway-core'
+
     implementation("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
 
@@ -37,4 +41,19 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+flyway {
+    // Replace the URL, user, and password with your database connection details.
+
+    def profile = System.getProperty('spring.profiles.active') ?: 'unknown'
+    def prefixDBName = "${profile}" == ""? "" : "${profile}_"
+    def dbName = "${prefixDBName}lucky_draw"
+    url="jdbc:postgresql://localhost:5432/${dbName}"
+    user = 'postgres'
+    password='postgres'
+    schemas = ['public']
+    def cleanDisabledProp = project.findProperty('flyway.cleanDisabled') ?: 'false'
+    cleanDisabled = cleanDisabledProp.toBoolean()
+    baselineOnMigrate = true
 }

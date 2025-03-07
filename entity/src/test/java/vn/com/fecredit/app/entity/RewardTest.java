@@ -53,9 +53,9 @@ class RewardTest extends BaseEntityTest {
             .createdBy("test")
             .updatedBy("test")
             .eventLocations(new LinkedHashSet<>())
-            .rewards(new LinkedHashSet<>())
-            .goldenHours(new LinkedHashSet<>())
-            .spinHistories(new LinkedHashSet<>())
+//            .rewards(new LinkedHashSet<>())
+//            .goldenHours(new LinkedHashSet<>())
+//            .spinHistories(new LinkedHashSet<>())
             .build();
 
         verifyEntityState(event, "Event");

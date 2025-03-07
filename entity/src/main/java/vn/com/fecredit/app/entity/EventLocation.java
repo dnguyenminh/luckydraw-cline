@@ -59,6 +59,10 @@ public class EventLocation extends AbstractStatusAwareEntity {
     @JoinColumn(name = "region_id")
     private Region region;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "province_id")
+    private Province province;
+
     @OneToMany(mappedBy = "eventLocation", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<ParticipantEvent> participantEvents = new HashSet<>();

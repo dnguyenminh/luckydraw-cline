@@ -56,6 +56,10 @@ public class Participant extends AbstractStatusAwareEntity {
     @JoinColumn(name = "province_id")
     private Province province;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     public void setProvince(Province newProvince) {
         Province oldProvince = this.province;
         

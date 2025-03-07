@@ -67,27 +67,27 @@ public class Event extends AbstractStatusAwareEntity {
     @Builder.Default
     private Set<EventLocation> eventLocations = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<Reward> rewards = new LinkedHashSet<>();
+//    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
+//    @Builder.Default
+//    private Set<Reward> rewards = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<GoldenHour> goldenHours = new LinkedHashSet<>();
+//    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
+//    @Builder.Default
+//    private Set<GoldenHour> goldenHours = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<SpinHistory> spinHistories = new LinkedHashSet<>();
+//    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
+//    @Builder.Default
+//    private Set<SpinHistory> spinHistories = new LinkedHashSet<>();
 
     public Set<EventLocation> getLocations() {
         return eventLocations;
     }
 
-    public Set<ParticipantEvent> getParticipants() {
-        return eventLocations.stream()
-            .flatMap(location -> location.getParticipantEvents().stream())
-            .collect(Collectors.toSet());
-    }
+//    public Set<ParticipantEvent> getParticipants() {
+//        return eventLocations.stream()
+//            .flatMap(location -> location.getParticipantEvents().stream())
+//            .collect(Collectors.toSet());
+//    }
 
     public void addLocation(EventLocation location) {
         if (location == null) return;
