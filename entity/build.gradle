@@ -1,0 +1,40 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' apply false
+    id 'io.spring.dependency-management'
+}
+
+group = 'vn.com.fecredit'
+version = '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+    }
+}
+
+dependencies {
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+    api 'org.hibernate.validator:hibernate-validator'
+    api 'jakarta.validation:jakarta.validation-api'
+
+    implementation("org.projectlombok:lombok:1.18.30")
+    annotationProcessor("org.projectlombok:lombok:1.18.30")
+
+    testImplementation("org.projectlombok:lombok:1.18.30")
+    testAnnotationProcessor("org.projectlombok:lombok:1.18.30")
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
