@@ -17,10 +17,6 @@ public class Region extends AbstractStatusAwareEntity {
     
     private static final long serialVersionUID = 1L;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @Setter
     @Column(name = "name")
     private String name;
@@ -93,7 +89,7 @@ public class Region extends AbstractStatusAwareEntity {
     @Override
     public String toString() {
         return String.format("Region[id=%d, code=%s, name=%s]",
-                id, code, name);
+                getId(), code, name);
     }
 
     @Override

@@ -1,55 +1,33 @@
-rootProject.name = 'app'
+//pluginManagement {
+//    repositories {
+//        gradlePluginPortal()
+//        mavenCentral()
+//    }
+//    plugins {
+//        id 'org.springframework.boot' version '3.2.0'
+//        id 'io.spring.dependency-management' version '1.1.4'
+//    }
+//}
+rootProject.name = 'luckydraw-cline'
 
-// Enable dependency verification
-dependencyResolutionManagement {
+
+include 'entity'
+include 'repository'
+
+project(':entity').projectDir = file('entity')
+project(':repository').projectDir = file('repository')
+
+
+
+buildscript {
     repositories {
         mavenCentral()
     }
-    
-    versionCatalogs {
-        libs {
-            version('spring-boot', '3.2.2')
-            version('jwt', '0.12.3')
-            version('jackson', '2.15.2')
-            version('lombok', '1.18.30')
-            
-            plugin('spring-boot', 'org.springframework.boot').version('3.2.2')
-            plugin('spring-dependency', 'io.spring.dependency-management').version('1.1.4')
-            
-            library('spring-boot-starter-web', 'org.springframework.boot', 'spring-boot-starter-web').versionRef('spring-boot')
-            library('spring-boot-starter-data-jpa', 'org.springframework.boot', 'spring-boot-starter-data-jpa').versionRef('spring-boot')
-            library('spring-boot-starter-security', 'org.springframework.boot', 'spring-boot-starter-security').versionRef('spring-boot')
-            library('spring-boot-starter-validation', 'org.springframework.boot', 'spring-boot-starter-validation').versionRef('spring-boot')
-            library('spring-boot-starter-actuator', 'org.springframework.boot', 'spring-boot-starter-actuator').versionRef('spring-boot')
-            
-            library('jakarta-persistence', 'jakarta.persistence', 'jakarta.persistence-api').version('3.1.0')
-            library('jakarta-validation', 'jakarta.validation', 'jakarta.validation-api').version('3.0.2')
-            library('jakarta-servlet', 'jakarta.servlet', 'jakarta.servlet-api').version('6.0.0')
-            
-            library('jackson-databind', 'com.fasterxml.jackson.core', 'jackson-databind').versionRef('jackson')
-            library('jwt-api', 'io.jsonwebtoken', 'jjwt-api').versionRef('jwt')
-            library('jwt-impl', 'io.jsonwebtoken', 'jjwt-impl').versionRef('jwt')
-            library('jwt-jackson', 'io.jsonwebtoken', 'jjwt-jackson').versionRef('jwt')
-            
-            bundle('jakarta', ['jakarta-persistence', 'jakarta-validation', 'jakarta-servlet'])
-            bundle('jwt', ['jwt-api', 'jwt-impl', 'jwt-jackson'])
-            bundle('spring-boot-starters', [
-                'spring-boot-starter-web',
-                'spring-boot-starter-data-jpa',
-                'spring-boot-starter-security',
-                'spring-boot-starter-validation',
-                'spring-boot-starter-actuator'
-            ])
-        }
+    dependencies {
+        classpath 'org.springframework.boot:spring-boot-gradle-plugin:3.2.0'
     }
 }
 
-// Enable Gradle build cache
-buildCache {
-    local {
-        enabled = true
-    }
-}
+enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')
+include 'service'
 
-// Configure included builds (if any)
-// includeBuild '../some-other-project'

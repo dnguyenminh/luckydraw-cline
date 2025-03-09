@@ -3,7 +3,6 @@ package vn.com.fecredit.app.entity.base;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.domain.Persistable;
@@ -14,7 +13,6 @@ import java.io.Serializable;
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
-@NoArgsConstructor
 @AllArgsConstructor
 public abstract class AbstractPersistableEntity implements Persistable<Long>, Serializable {
 
@@ -26,8 +24,12 @@ public abstract class AbstractPersistableEntity implements Persistable<Long>, Se
     private Long id;
 
     @Version
-    @Column(name = "version")
+    @Column(name = "version", nullable = false)
     private Long version;
+
+    protected AbstractPersistableEntity() {
+        this.version = 0L;
+    }
 
     @Override
     public boolean isNew() {
@@ -61,15 +63,7 @@ public abstract class AbstractPersistableEntity implements Persistable<Long>, Se
     }
 
     public boolean isModified() {
-        return version != null;
-    }
-
-    protected void incrementVersion() {
-        if (version == null) {
-            version = 1L;
-        } else {
-            version++;
-        }
+        return version > 0L;
     }
 
     public AbstractPersistableEntity toReference() {

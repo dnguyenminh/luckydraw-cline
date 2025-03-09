@@ -10,6 +10,7 @@ import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 @Entity
 @Table(name = "participants")
 @Getter
+@Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,22 +22,21 @@ public class Participant extends AbstractStatusAwareEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Setter
+    @Column(name = "account", nullable = false, unique = true)
+    private String account;
+
     @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "phone", nullable = false, unique = true)
     private String phone;
 
-    @Setter
     @Column(name = "email")
     private String email;
 
-    @Setter
     @Column(name = "code")
     private String code;
 
-    @Setter
     @Column(name = "metadata")
     private String metadata;
 
