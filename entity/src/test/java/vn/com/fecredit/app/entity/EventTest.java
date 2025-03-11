@@ -1,162 +1,171 @@
 package vn.com.fecredit.app.entity;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import vn.com.fecredit.app.entity.base.BaseEntityTest;
-
-import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
-
 import static org.junit.jupiter.api.Assertions.*;
 
-class EventTest extends BaseEntityTest {
+import java.time.LocalDateTime;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class EventTest {
 
     private Event event;
     private Region region1;
     private Region region2;
     private Province province1;
     private Province province2;
-    private Province province3;
+    private EventLocation location1;
+    private EventLocation location2;
 
     @BeforeEach
     void setUp() {
-        // Create provinces
-        province1 = new Province();
-        province1.setName("Province 1");
-        province1.setCode(generateUniqueCode());
-        province1.setStatus(1);
+        LocalDateTime now = LocalDateTime.now();
 
-        province2 = new Province();
-        province2.setName("Province 2");
-        province2.setCode(generateUniqueCode());
-        province2.setStatus(1);
+        event = Event.builder()
+            .name("Test Event")
+            .code("TEST_EVENT")
+            .status(1)
+            .startTime(now)
+            .endTime(now.plusDays(7))
+            .defaultWinProbability(0.1)
+            .dailySpinLimit(5)
+            .initialSpins(10)
+            .build();
 
-        province3 = new Province();
-        province3.setName("Province 3");
-        province3.setCode(generateUniqueCode());
-        province3.setStatus(1);
+        region1 = Region.builder()
+            .name("Region 1")
+            .code("REG1")
+            .status(1)
+            .build();
 
-        // Create regions with different province sets
-        region1 = new Region();
-        region1.setName("Region 1");
-        region1.setCode(generateUniqueCode());
-        region1.setStatus(1);
-        Set<Province> provinces1 = new HashSet<>();
-        provinces1.add(province1);
-        provinces1.add(province2);
-        region1.setProvinces(provinces1);
+        region2 = Region.builder()
+            .name("Region 2")
+            .code("REG2")
+            .status(1)
+            .build();
 
-        region2 = new Region();
-        region2.setName("Region 2");
-        region2.setCode(generateUniqueCode());
-        region2.setStatus(1);
-        Set<Province> provinces2 = new HashSet<>();
-        provinces2.add(province2);
-        provinces2.add(province3);
-        region2.setProvinces(provinces2);
+        province1 = Province.builder()
+            .name("Province 1")
+            .code("PROV1")
+            .status(1)
+            .build();
 
-        // Create event
-        event = new Event();
-        event.setName("Test Event");
-        event.setCode(generateUniqueCode());
-        event.setInitialSpins(10);
-        event.setDailySpinLimit(5);
-        event.setStatus(1);
-        event.setStartTime(LocalDateTime.now().minusDays(1));
-        event.setEndTime(LocalDateTime.now().plusDays(1));
+        province2 = Province.builder()
+            .name("Province 2")
+            .code("PROV2")
+            .status(1)
+            .build();
+
+        location1 = EventLocation.builder()
+            .name("Location 1")
+            .code("LOC1")
+            .status(1)
+            .build();
+
+        location2 = EventLocation.builder()
+            .name("Location 2")
+            .code("LOC2")
+            .status(1)
+            .build();
     }
 
     @Test
-    void addLocation_ShouldAllowNonOverlappingProvinces() {
-        // Create locations with non-overlapping regions
-        EventLocation location1 = new EventLocation();
-        location1.setName("Location 1");
-        location1.setCode(generateUniqueCode());
-        location1.setRegion(new Region());  // Region with no provinces
-        location1.setStatus(1);
+    void testEventLocationAssociation() {
+        region1.addProvince(province1);
+        region2.addProvince(province2);
 
-        EventLocation location2 = new EventLocation();
-        location2.setName("Location 2");
-        location2.setCode(generateUniqueCode());
-        location2.setRegion(new Region());  // Region with no provinces
-        location2.setStatus(1);
+        location1.setRegion(region1);
+        location2.setRegion(region2);
 
-        // Should be able to add both locations
-        assertDoesNotThrow(() -> {
-            event.addLocation(location1);
+        // Add locations to event
+        event.addLocation(location1);
+        event.addLocation(location2);
+
+        assertEquals(2, event.getLocations().size());
+        assertTrue(event.getLocations().contains(location1));
+        assertTrue(event.getLocations().contains(location2));
+        assertEquals(event, location1.getEvent());
+        assertEquals(event, location2.getEvent());
+
+        // Test removal
+        event.removeLocation(location1);
+        assertEquals(1, event.getLocations().size());
+        assertFalse(event.getLocations().contains(location1));
+        assertNull(location1.getEvent());
+    }
+
+    @Test
+    void testOverlappingProvinces() {
+        // Setup regions with overlapping province
+        region1.addProvince(province1);
+        region2.addProvince(province1); 
+
+        location1.setRegion(region1);
+        location2.setRegion(region2);
+
+        event.addLocation(location1);
+        
+        // Should throw exception when adding location with overlapping province
+        assertThrows(IllegalArgumentException.class, () -> {
             event.addLocation(location2);
         });
     }
 
     @Test
-    void addLocation_ShouldPreventOverlappingProvinces() {
-        // Create locations with overlapping regions
-        EventLocation location1 = new EventLocation();
-        location1.setName("Location 1");
-        location1.setCode(generateUniqueCode());
-        location1.setRegion(region1);  // Contains provinces 1,2
-        location1.setStatus(1);
+    void testEventTimeBoundaryActivation() {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Test current active event
+        event.setStartTime(now.minusDays(1));
+        event.setEndTime(now.plusDays(1));
+        assertTrue(event.isActive());
 
-        EventLocation location2 = new EventLocation();
-        location2.setName("Location 2");
-        location2.setCode(generateUniqueCode());
-        location2.setRegion(region2);  // Contains provinces 2,3
-        location2.setStatus(1);
+        // Test past event
+        event.setStartTime(now.minusDays(2));
+        event.setEndTime(now.minusDays(1));
+        assertFalse(event.isActive());
 
-        // First location should be added successfully
-        assertDoesNotThrow(() -> event.addLocation(location1));
+        // Test future event
+        event.setStartTime(now.plusDays(1));
+        event.setEndTime(now.plusDays(2));
+        assertFalse(event.isActive());
 
-        // Second location should throw exception due to overlapping province2
-        assertThrows(IllegalArgumentException.class, () -> event.addLocation(location2));
+        // Test null dates
+        event.setStartTime(null);
+        event.setEndTime(null);
+        assertFalse(event.isActive());
     }
 
     @Test
-    void addLocation_ShouldHandleNullValues() {
-        assertDoesNotThrow(() -> event.addLocation(null));
+    void testDefaultLocation() {
+        assertNull(event.getDefaultLocation());
 
-        EventLocation location = new EventLocation();
-        location.setName("Location 1");
-        location.setCode(generateUniqueCode());
-        location.setStatus(1);
-        // No region set (null)
-
-        assertDoesNotThrow(() -> event.addLocation(location));
-    }
-
-    @Test
-    void hasOverlappingProvinces_ShouldHandleEdgeCases() {
-        EventLocation location1 = new EventLocation();
-        location1.setName("Location 1");
-        location1.setCode(generateUniqueCode());
         location1.setRegion(region1);
-        location1.setStatus(1);
         event.addLocation(location1);
+        assertEquals(location1, event.getDefaultLocation());
 
-        // Test with null location
-        assertFalse(event.hasOverlappingProvinces(null));
+        location2.setRegion(region2);
+        event.addLocation(location2);
+        // Default location should still be the first one added
+        assertEquals(location1, event.getDefaultLocation());
 
-        // Test with location having null region
-        EventLocation location2 = new EventLocation();
-        location2.setName("Location 2");
-        location2.setCode(generateUniqueCode());
-        location2.setStatus(1);
-        assertFalse(event.hasOverlappingProvinces(location2));
+        event.removeLocation(location1);
+        assertEquals(location2, event.getDefaultLocation());
     }
 
     @Test
-    void removeLocation_ShouldWorkCorrectly() {
-        EventLocation location = new EventLocation();
-        location.setName("Location 1");
-        location.setCode(generateUniqueCode());
-        location.setRegion(region1);
-        location.setStatus(1);
+    void testNullLocationHandling() {
+        assertDoesNotThrow(() -> event.addLocation(null));
+        assertDoesNotThrow(() -> event.removeLocation(null));
+        assertTrue(event.getLocations().isEmpty());
+    }
 
-        event.addLocation(location);
-        assertTrue(event.getLocations().contains(location));
+    @Test
+    void testOverlappingProvincesWithNull() {
+        location1.setRegion(null);
+        location2.setRegion(region2);
 
-        event.removeLocation(location);
-        assertFalse(event.getLocations().contains(location));
-        assertNull(location.getEvent());
+        event.addLocation(location1);
+        // Should not throw exception when region is null
+        assertDoesNotThrow(() -> event.addLocation(location2));
     }
 }

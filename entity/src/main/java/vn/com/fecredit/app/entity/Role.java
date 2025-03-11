@@ -2,12 +2,16 @@ package vn.com.fecredit.app.entity;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -17,6 +21,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.enums.Permission;
+import vn.com.fecredit.app.enums.RoleName;
 
 @Entity
 @Table(name = "roles")
@@ -27,113 +33,134 @@ import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 @AllArgsConstructor
 public class Role extends AbstractStatusAwareEntity {
 
-    private static final long serialVersionUID = 1L;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private RoleName name;
 
-    public static final int STATUS_ACTIVE = AbstractStatusAwareEntity.STATUS_ACTIVE;
-    public static final int STATUS_INACTIVE = AbstractStatusAwareEntity.STATUS_INACTIVE;
-
-    {
-        setStatus(STATUS_ACTIVE); // Initialize with active status
-    }
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "name", unique = true)
-    private String name;
-
-    @Column(name = "code", unique = true)
+    @Column(length = 50, unique = true)
     private String code;
 
-    @Column(name = "description")
+    @Column(length = 200)
     private String description;
 
-    @Column(name = "priority")
-    @Builder.Default
-    private int priority = 0;
+    private Integer priority;
 
-    @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "role_permissions",
+        joinColumns = @JoinColumn(name = "role_id")
+    )
+    @Column(name = "permission")
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private Set<Permission> permissions = new HashSet<>();
+
+    @ManyToMany(mappedBy = "roles")
     @Builder.Default
     private Set<User> users = new HashSet<>();
 
-    @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<Participant> participants = new HashSet<>();
+    // Permission management
+    public void addPermission(Permission permission) {
+        if (permissions == null) {
+            permissions = new HashSet<>();
+        }
+        permissions.add(permission);
+    }
 
-    @Column(name = "metadata")
-    private String metadata;
+    public void addPermission(String permissionName) {
+        try {
+            Permission permission = Permission.fromName(permissionName);
+            addPermission(permission);
+        } catch (IllegalArgumentException e) {
+            // Invalid permission name - silently ignore
+        }
+    }
 
-    public Set<User> getUsers() {
+    public void removePermission(Permission permission) {
+        if (permissions != null) {
+            permissions.remove(permission);
+        }
+    }
+
+    public void removePermission(String permissionName) {
+        try {
+            Permission permission = Permission.fromName(permissionName);
+            removePermission(permission);
+        } catch (IllegalArgumentException e) {
+            // Invalid permission name - silently ignore
+        }
+    }
+
+    public boolean hasPermission(Permission permission) {
+        return permissions != null && permissions.contains(permission);
+    }
+
+    public boolean hasPermission(String permissionName) {
+        try {
+            Permission permission = Permission.fromName(permissionName);
+            return hasPermission(permission);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public void setPermissions(Set<String> permissionNames) {
+        if (permissionNames == null) {
+            this.permissions = new HashSet<>();
+            return;
+        }
+        this.permissions = permissionNames.stream()
+                .map(name -> {
+                    try {
+                        return Permission.fromName(name);
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(p -> p != null)
+                .collect(Collectors.toSet());
+    }
+
+    // User management
+    public void addUser(User user) {
         if (users == null) {
             users = new HashSet<>();
         }
-        return users;
-    }
-
-    public Set<Participant> getParticipants() {
-        if (participants == null) {
-            participants = new HashSet<>();
+        users.add(user);
+        if (user.getRoles() == null) {
+            user.setRoles(new HashSet<>());
         }
-        return participants;
-    }
-
-    public void setUsers(Set<User> users) {
-        this.users = users != null ? users : new HashSet<>();
-    }
-
-    public void setParticipants(Set<Participant> participants) {
-        this.participants = participants != null ? participants : new HashSet<>();
-    }
-
-    public void addUser(User user) {
-        if (user != null) {
-            getUsers().add(user);
-            if (user.getRoles() == null) {
-                user.setRoles(new HashSet<>());
-            }
-            user.getRoles().add(this);
-        }
+        user.getRoles().add(this);
     }
 
     public void removeUser(User user) {
-        if (user != null) {
-            getUsers().remove(user);
+        if (users != null) {
+            users.remove(user);
             if (user.getRoles() != null) {
                 user.getRoles().remove(this);
             }
         }
     }
 
-    public void addParticipant(Participant participant) {
-        if (participant != null) {
-            getParticipants().add(participant);
-            if (participant.getRoles() == null) {
-                participant.setRoles(new HashSet<>());
-            }
-            participant.getRoles().add(this);
-        }
-    }
-
-    public void removeParticipant(Participant participant) {
-        if (participant != null) {
-            getParticipants().remove(participant);
-            if (participant.getRoles() != null) {
-                participant.getRoles().remove(this);
-            }
-        }
-    }
-
     public boolean hasUser(User user) {
-        return user != null && getUsers().contains(user);
+        return users != null && users.contains(user);
     }
 
-    public boolean hasParticipant(Participant participant) {
-        return participant != null && getParticipants().contains(participant);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Role role = (Role) o;
+        return getCode() != null && getCode().equals(role.getCode());
+    }
+
+    @Override
+    public int hashCode() {
+        return getCode() != null ? getCode().hashCode() : 0;
     }
 
     @Override
     public String toString() {
-        return String.format("Role[id=%d, name=%s, code=%s, priority=%d]", id, name, code, priority);
+        return "Role(name=" + name + ", code=" + code + ")";
     }
 }

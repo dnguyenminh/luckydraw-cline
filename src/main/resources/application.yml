@@ -1,65 +1,43 @@
 spring:
+  application:
+    name: luckydraw
+  
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
+    show-sql: true
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/luckydraw
-    username: postgres
-    password: postgres
     driver-class-name: org.postgresql.Driver
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/luckydraw}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
       idle-timeout: 300000
       connection-timeout: 20000
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-    open-in-view: false
+      max-lifetime: 1200000
 
   flyway:
     enabled: true
-    baseline-on-migrate: true
-    clean-disabled: true
     locations: classpath:db/migration
+    baseline-on-migrate: true
     validate-on-migrate: true
-    out-of-order: false
-    placeholder-replacement: false
-
-server:
-  port: 8080
-  servlet:
-    context-path: /api
 
 logging:
   level:
+    root: INFO
+    org.springframework: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    org.flywaydb: DEBUG
     vn.com.fecredit.app: DEBUG
-
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-    enabled: true
-  swagger-ui:
-    path: /swagger-ui.html
-    enabled: true
-    operationsSorter: method
-    tagsSorter: alpha
-    defaultModelsExpandDepth: -1
-    docExpansion: none
-    supportedSubmitMethods:
-      - get
-      - post
-      - put
-      - delete
-  default-produces-media-type: application/json
-  default-consumes-media-type: application/json
-  writer-with-default-pretty-printer: true
-  show-actuator: false
-  packagesToScan: vn.com.fecredit.app.controller
-  pathsToMatch: /api/**

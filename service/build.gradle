@@ -1,0 +1,123 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' apply false
+    id 'io.spring.dependency-management'
+    id 'org.flywaydb.flyway' version '9.16.0'
+}
+
+group = 'vn.com.fecredit'
+version = '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+    }
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+ext {
+    mapstructVersion = "1.5.5.Final"
+    lombokVersion = "1.18.30"
+}
+
+tasks.register('testJar', Jar) {
+    archiveClassifier = 'tests'
+    from sourceSets.test.output
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+    api project(":entity")
+    api project(":repository")
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.hibernate.validator:hibernate-validator'
+    implementation 'jakarta.validation:jakarta.validation-api'
+    implementation 'org.glassfish:jakarta.el:4.0.2'
+
+    implementation 'org.postgresql:postgresql'
+    implementation 'org.flywaydb:flyway-core'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    implementation 'org.apache.commons:commons-text:1.9'
+
+    // MapStruct
+    implementation "org.mapstruct:mapstruct:${mapstructVersion}"
+    annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+
+    // Lombok
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok-mapstruct-binding:0.2.0"
+
+    // Test dependencies
+    testImplementation project(":entity")
+    testImplementation project(":repository")
+    
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+}
+
+// Make sure repository sources are included in IDE
+// sourceSets {
+//     test {
+//         compileClasspath += project(":repository").sourceSets.main.output
+//         runtimeClasspath += project(":repository").sourceSets.main.output
+//     }
+// }
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += [
+        "-Amapstruct.defaultComponentModel=spring",
+        "-Amapstruct.unmappedTargetPolicy=IGNORE"
+    ]
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs += [
+        "-Xlint:unchecked",
+        "-Xlint:deprecation"
+    ]
+}
+
+flyway {
+    String profile = System.getProperty('spring.profiles.active', 'unknown')
+    String prefixDBName = profile == "" ? "" : "${profile}_"
+    String dbName = "${prefixDBName}lucky_draw"
+    url = "jdbc:postgresql://localhost:5432/${dbName}"
+    user = 'postgres'
+    password = 'postgres'
+    schemas = ['public']
+    cleanDisabled = (project.findProperty('flyway.cleanDisabled') ?: 'false').toBoolean()
+    baselineOnMigrate = true
+}

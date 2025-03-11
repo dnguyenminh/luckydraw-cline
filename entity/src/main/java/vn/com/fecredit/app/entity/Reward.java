@@ -1,6 +1,9 @@
 package vn.com.fecredit.app.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -65,6 +68,11 @@ public class Reward extends AbstractStatusAwareEntity {
     @Column(name = "metadata")
     private String metadata;
 
+    @OneToMany(mappedBy = "reward", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("timestamp DESC")
+    @Builder.Default
+    private List<SpinHistory> spinHistories = new ArrayList<>();
+
     public Event getEvent() {
         return eventLocation != null ? eventLocation.getEvent() : null;
     }
@@ -125,9 +133,9 @@ public class Reward extends AbstractStatusAwareEntity {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        boolean timeValid = (now.isEqual(validFrom) || now.isAfter(validFrom)) && 
-                          (now.isEqual(validUntil) || now.isBefore(validUntil));
-        
+        boolean timeValid = (now.isEqual(validFrom) || now.isAfter(validFrom)) &&
+                (now.isEqual(validUntil) || now.isBefore(validUntil));
+
         if (!timeValid) {
             System.out.println("Reward time range check failed");
             System.out.println("now: " + now);
@@ -150,10 +158,10 @@ public class Reward extends AbstractStatusAwareEntity {
     @Override
     public String toString() {
         return String.format("Reward[id=%d, code=%s, name=%s, location=%s]",
-            id,
-            code,
-            name,
-            eventLocation != null ? eventLocation.getCode() : "null"
+                id,
+                code,
+                name,
+                eventLocation != null ? eventLocation.getCode() : "null"
         );
     }
 }

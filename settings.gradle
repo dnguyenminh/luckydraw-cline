@@ -13,9 +13,11 @@ rootProject.name = 'luckydraw-cline'
 
 include 'entity'
 include 'repository'
+include 'service'
 
 project(':entity').projectDir = file('entity')
 project(':repository').projectDir = file('repository')
+project(':service').projectDir = file('service')
 
 
 
@@ -29,5 +31,4 @@ buildscript {
 }
 
 enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')
-include 'service'
 

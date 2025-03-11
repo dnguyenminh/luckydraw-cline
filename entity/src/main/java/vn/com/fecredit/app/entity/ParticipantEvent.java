@@ -5,162 +5,144 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "participant_events")
 @Getter
+@Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class ParticipantEvent extends AbstractStatusAwareEntity {
 
-    private static final long serialVersionUID = 1L;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "participant_id")
+    @JoinColumn(name = "participant_id", nullable = false)
+    @ToString.Exclude
     private Participant participant;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_location_id")
+    @JoinColumn(name = "event_id", nullable = false)
+    @ToString.Exclude
+    private Event event;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_location_id", nullable = false)
+    @ToString.Exclude
     private EventLocation eventLocation;
 
-    @Setter
-    @Column(name = "available_spins")
-    @Builder.Default
-    private Integer availableSpins = 0;
-
-    @Column(name = "daily_spin_count")
-    @Builder.Default
-    private int dailySpinCount = 0;
-
-    @Setter
     @Column(name = "total_spins")
-    @Builder.Default
-    private int totalSpins = 0;
+    private Integer totalSpins = 0;
 
-    @Setter
-    @Column(name = "total_wins")
-    @Builder.Default
-    private int totalWins = 0;
+    @Column(name = "remaining_spins")
+    private Integer remainingSpins = 0;
 
-    @Setter
-    @Column(name = "total_points")
-    @Builder.Default
-    private int totalPoints = 0;
+    @Column(name = "initial_spins")
+    private Integer initialSpins = 0;
+
+    @Column(name = "daily_spins_used")
+    private Integer dailySpinsUsed = 0;
 
     @Column(name = "metadata")
     private String metadata;
 
-    public Event getEvent() {
-        return eventLocation != null ? eventLocation.getEvent() : null;
+    @OneToMany(mappedBy = "participantEvent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @ToString.Exclude
+    private List<SpinHistory> spinHistories = new ArrayList<>();
+
+    @PrePersist
+    @PreUpdate
+    protected void validateState() {
+        if (event == null) {
+            throw new IllegalStateException("Event is required");
+        }
+        if (eventLocation == null) {
+            throw new IllegalStateException("Event location is required");
+        }
+        if (participant == null) {
+            throw new IllegalStateException("Participant is required");
+        }
+        if (totalSpins != null && totalSpins < 0) {
+            throw new IllegalStateException("Total spins cannot be negative");
+        }
+        if (remainingSpins != null && remainingSpins < 0) {
+            throw new IllegalStateException("Remaining spins cannot be negative");
+        }
+        if (dailySpinsUsed != null && dailySpinsUsed < 0) {
+            throw new IllegalStateException("Daily spins used cannot be negative");
+        }
     }
 
-    public void setEventLocation(EventLocation newLocation) {
-        if (this.eventLocation != null && this.eventLocation.getParticipantEvents().contains(this)) {
-            this.eventLocation.getParticipantEvents().remove(this);
+    @Override
+    protected void onActivate() {
+        if (event == null || !event.isActive()) {
+            throw new IllegalStateException("Cannot activate participant event for inactive event");
         }
-        this.eventLocation = newLocation;
-        if (newLocation != null) {
-            if (!newLocation.getParticipantEvents().contains(this)) {
-                newLocation.getParticipantEvents().add(this);
+        if (eventLocation == null || !eventLocation.isActive()) {
+            throw new IllegalStateException("Cannot activate participant event for inactive location");
+        }
+        if (participant == null || !participant.isActive()) {
+            throw new IllegalStateException("Cannot activate participant event for inactive participant");
+        }
+    }
+
+    @Override
+    protected void onDeactivate() {
+        if (!spinHistories.isEmpty() && 
+            spinHistories.stream().anyMatch(sh -> !sh.isFinalized())) {
+            throw new IllegalStateException("Cannot deactivate participant event with pending spins");
+        }
+    }
+
+    public void addSpinHistory(SpinHistory spinHistory) {
+        spinHistories.add(spinHistory);
+        spinHistory.setParticipantEvent(this);
+        dailySpinsUsed++;
+        remainingSpins--;
+    }
+
+    public void removeSpinHistory(SpinHistory spinHistory) {
+        if (spinHistories.remove(spinHistory)) {
+            spinHistory.setParticipantEvent(null);
+            if (dailySpinsUsed > 0) {
+                dailySpinsUsed--;
             }
-            // Initialize spins if needed
-            if (availableSpins == null || availableSpins == 0) {
-                Integer initialSpins = newLocation.getEffectiveInitialSpins();
-                if (initialSpins != null) {
-                    availableSpins = initialSpins;
-                }
+            if (remainingSpins < totalSpins) {
+                remainingSpins++;
             }
         }
     }
 
-    public void setParticipant(Participant newParticipant) {
-        if (this.participant != null && this.participant.getParticipantEvents().contains(this)) {
-            this.participant.getParticipantEvents().remove(this);
-        }
-        this.participant = newParticipant;
-        if (newParticipant != null && !newParticipant.getParticipantEvents().contains(this)) {
-            newParticipant.getParticipantEvents().add(this);
-        }
+    public boolean hasRemainingSpins() {
+        return remainingSpins > 0;
     }
 
-    public void incrementSpinCount() {
-        if (!canSpin()) {
-            return;
-        }
-        dailySpinCount++;
-        if (totalSpins < Integer.MAX_VALUE) {
-            totalSpins++;
-        }
-        if (availableSpins != null && availableSpins > 0) {
-            availableSpins--;
-        }
+    public boolean hasReachedDailyLimit() {
+        return dailySpinsUsed >= 10; // Default daily limit
     }
 
-    public void incrementWinCount() {
-        if (totalWins < Integer.MAX_VALUE) {
-            totalWins++;
-        }
-    }
-
-    public void addPoints(Integer points) {
-        if (points == null) {
-            throw new IllegalArgumentException("Points cannot be null");
-        }
-        if (points < 0) {
-            throw new IllegalArgumentException("Points cannot be negative");
-        }
-        if (totalPoints <= Integer.MAX_VALUE - points) {
-            totalPoints += points;
-        } else {
-            totalPoints = Integer.MAX_VALUE;
-        }
-    }
-
-    public void resetDailySpinCount() {
-        dailySpinCount = 0;
-    }
-
-    public void addAvailableSpins(int spins) {
-        if (spins < 0) {
-            throw new IllegalArgumentException("Cannot add negative spins");
-        }
-        if (availableSpins == null) {
-            availableSpins = spins;
-        } else if (availableSpins <= Integer.MAX_VALUE - spins) {
-            availableSpins += spins;
-        } else {
-            availableSpins = Integer.MAX_VALUE;
-        }
+    public void resetDailySpins() {
+        dailySpinsUsed = 0;
     }
 
     public boolean canSpin() {
-        if (!isActive() || eventLocation == null) {
-            return false;
-        }
-
-        Integer limit = eventLocation.getEffectiveDailySpinLimit();
-        return availableSpins != null && availableSpins > 0 &&
-               (limit == null || dailySpinCount < limit);
+        return isActive() && hasRemainingSpins() && !hasReachedDailyLimit();
     }
 
-    @Override
+    public int getWinningSpinsCount() {
+        return (int) spinHistories.stream()
+                .filter(SpinHistory::isWin)
+                .count();
+    }
+
+    public double getWinRate() {
+        return spinHistories.isEmpty() ? 0.0 : 
+            (double) getWinningSpinsCount() / spinHistories.size();
+    }
+
     public boolean isActive() {
-        return super.isActive() && 
-               participant != null && participant.isActive() &&
-               eventLocation != null && eventLocation.isActive() &&
-               getEvent() != null && getEvent().isActive();
-    }
-
-    @Override
-    public String toString() {
-        Event event = getEvent();
-        return String.format("ParticipantEvent[id=%d, participant=%s, event=%s]",
-                id,
-                participant != null ? participant.getCode() : "null",
-                event != null ? event.getCode() : "null");
+        return getStatus() == 1;
     }
 }

@@ -1,6 +1,9 @@
 package vn.com.fecredit.app.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -64,6 +67,11 @@ public class GoldenHour extends AbstractStatusAwareEntity {
 
     @Column(name = "metadata")
     private String metadata;
+
+    @OneToMany(mappedBy = "goldenHour", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("timestamp DESC")
+    @Builder.Default
+    private List<SpinHistory> spinHistories = new ArrayList<>();
 
     // Event relationship methods
     @Deprecated
@@ -131,8 +139,8 @@ public class GoldenHour extends AbstractStatusAwareEntity {
 
     // Win probability methods
     public Double getWinProbability() {
-        double baseProb = winProbability != null ? winProbability : 
-                         (eventLocation != null ? eventLocation.getDefaultWinProbability() : 0.0);
+        double baseProb = winProbability != null ? winProbability :
+                (eventLocation != null ? eventLocation.getDefaultWinProbability() : 0.0);
         return baseProb * getWinProbabilityMultiplier();
     }
 
@@ -171,13 +179,13 @@ public class GoldenHour extends AbstractStatusAwareEntity {
     @Override
     public String toString() {
         return String.format("GoldenHour[id=%d, code=%s, location=%s, start=%s, end=%s, probability=%.2f, multiplier=%.2f]",
-            id,
-            code,
-            eventLocation != null ? eventLocation.getCode() : "null",
-            startTime,
-            endTime,
-            getWinProbability(),
-            getWinProbabilityMultiplier()
+                id,
+                code,
+                eventLocation != null ? eventLocation.getCode() : "null",
+                startTime,
+                endTime,
+                getWinProbability(),
+                getWinProbabilityMultiplier()
         );
     }
 }

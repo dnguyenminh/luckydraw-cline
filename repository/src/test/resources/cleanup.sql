@@ -1,20 +1,15 @@
--- First delete all history/transaction tables
-DELETE FROM public.spin_histories;
+-- Disable foreign key checks
+SET FOREIGN_KEY_CHECKS = 0;
 
--- Then delete junction/mapping tables
-DELETE FROM public.participant_events;
-DELETE FROM public.participant_roles;
-DELETE FROM public.user_roles;
+-- Clean up all test data
+TRUNCATE TABLE event_location;
+TRUNCATE TABLE province;
+TRUNCATE TABLE region;
 
--- Then delete entity tables with foreign keys
-DELETE FROM public.golden_hours;
-DELETE FROM public.rewards;
-DELETE FROM public.participants;
-DELETE FROM public.event_locations;
-DELETE FROM public.events;
-DELETE FROM public.provinces;
-DELETE FROM public.regions;
+-- Reset auto-increment counters
+ALTER TABLE event_location AUTO_INCREMENT = 1;
+ALTER TABLE province AUTO_INCREMENT = 1;
+ALTER TABLE region AUTO_INCREMENT = 1;
 
--- Finally delete independent tables
-DELETE FROM public.roles;
-DELETE FROM public.users;
+-- Re-enable foreign key checks
+SET FOREIGN_KEY_CHECKS = 1;

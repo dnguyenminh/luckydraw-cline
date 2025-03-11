@@ -1,193 +1,133 @@
 package vn.com.fecredit.app.entity;
 
-import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
-
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "event_locations")
 @Getter
+@Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class EventLocation extends AbstractStatusAwareEntity {
 
-    private static final long serialVersionUID = 1L;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Setter
-    @Column(name = "name")
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Setter
-    @Column(name = "code", unique = true)
+    @Column(nullable = false, length = 20, unique = true)
     private String code;
 
-    @Setter
     @Column(name = "description")
     private String description;
 
-    @Setter
     @Column(name = "initial_spins")
     private Integer initialSpins;
 
-    @Setter
     @Column(name = "daily_spin_limit")
     private Integer dailySpinLimit;
 
-    @Setter
     @Column(name = "default_win_probability")
     private Double defaultWinProbability;
 
-    @Setter
     @Column(name = "metadata")
     private String metadata;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id")
+    @JoinColumn(name = "event_id", nullable = false)
+    @ToString.Exclude
     private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id")
+    @JoinColumn(name = "region_id", nullable = false)
+    @ToString.Exclude
     private Region region;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "province_id")
-    private Province province;
-
-    @OneToMany(mappedBy = "eventLocation", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private Set<ParticipantEvent> participantEvents = new HashSet<>();
+    @ToString.Exclude
+    private List<ParticipantEvent> participantEvents = new ArrayList<>();
 
-    @OneToMany(mappedBy = "eventLocation", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private Set<GoldenHour> goldenHours = new HashSet<>();
+    @ToString.Exclude
+    private List<Reward> rewards = new ArrayList<>();
 
-    @OneToMany(mappedBy = "eventLocation", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private Set<Reward> rewards = new HashSet<>();
+    @ToString.Exclude
+    private List<GoldenHour> goldenHours = new ArrayList<>();
 
-    @OneToMany(mappedBy = "eventLocation", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private Set<SpinHistory> spinHistories = new HashSet<>();
+    @ToString.Exclude
+    private List<SpinHistory> spinHistories = new ArrayList<>();
 
-    public void setEvent(Event newEvent) {
-        // Remove from old event
-        if (this.event != null && this.event.getEventLocations().contains(this)) {
-            this.event.getEventLocations().remove(this);
+    @Override
+    protected void onActivate() {
+        if (event == null || !event.isActive()) {
+            throw new IllegalStateException("Cannot activate location for inactive event");
         }
-
-        this.event = newEvent;
-
-        // Add to new event and initialize configuration
-        if (newEvent != null) {
-            if (!newEvent.getEventLocations().contains(this)) {
-                newEvent.getEventLocations().add(this);
-            }
-            // Initialize configuration from new event
-            if (initialSpins == null) {
-                this.initialSpins = newEvent.getInitialSpins();
-            }
-            if (dailySpinLimit == null) {
-                this.dailySpinLimit = newEvent.getDailySpinLimit();
-            }
-            if (defaultWinProbability == null) {
-                this.defaultWinProbability = newEvent.getDefaultWinProbability();
-            }
+        if (region == null || !region.isActive()) {
+            throw new IllegalStateException("Cannot activate location for inactive region");
         }
     }
 
-    public void setRegion(Region newRegion) {
-        Region oldRegion = this.region;
+    @Override
+    protected void onDeactivate() {
+        if (!participantEvents.isEmpty() && 
+            participantEvents.stream().anyMatch(pe -> pe.isActive())) {
+            throw new IllegalStateException("Cannot deactivate location with active participants");
+        }
+    }
 
-        // Remove from old region
-        if (oldRegion != null && oldRegion.getEventLocations().contains(this)) {
-            oldRegion.getEventLocations().remove(this);
+    @PrePersist
+    @PreUpdate
+    protected void validateState() {
+        if (code != null) {
+            code = code.toUpperCase();
+        }
+        
+        if (initialSpins != null && initialSpins < 0) {
+            throw new IllegalStateException("Initial spins cannot be negative");
+        }
+        
+        if (dailySpinLimit != null && dailySpinLimit < 0) {
+            throw new IllegalStateException("Daily spin limit cannot be negative");
+        }
+        
+        if (defaultWinProbability != null && 
+            (defaultWinProbability < 0 || defaultWinProbability > 1)) {
+            throw new IllegalStateException("Win probability must be between 0 and 1");
         }
 
-        this.region = newRegion;
-
-        // Add to new region
-        if (newRegion != null && !newRegion.getEventLocations().contains(this)) {
-            newRegion.getEventLocations().add(this);
+        if (event == null) {
+            throw new IllegalStateException("Event is required");
         }
 
-        // Ensure no overlapping provinces in the same event
-        if (newRegion != null && event != null) {
-            if (event.hasOverlappingProvinces(this)) {
-                throw new IllegalStateException("Cannot assign region - would create overlapping provinces within event");
-            }
+        if (region == null) {
+            throw new IllegalStateException("Region is required");
         }
     }
 
     public Integer getEffectiveInitialSpins() {
-        return initialSpins != null ? initialSpins : 
-               (event != null ? event.getInitialSpins() : null);
+        return initialSpins != null ? initialSpins : event.getInitialSpins();
     }
 
     public Integer getEffectiveDailySpinLimit() {
-        return dailySpinLimit != null ? dailySpinLimit :
-               (event != null ? event.getDailySpinLimit() : null);
+        return dailySpinLimit != null ? dailySpinLimit : event.getDailySpinLimit();
     }
 
-    public Double getEffectiveDefaultWinProbability() {
-        return defaultWinProbability != null ? defaultWinProbability :
-               (event != null ? event.getDefaultWinProbability() : null);
-    }
-
-    @Override
-    public boolean isActive() {
-        // First check this location's base status
-        boolean baseActive = super.isActive();
-        if (!baseActive) {
-            System.out.println("EventLocation base status check failed");
-            System.out.println("Status: " + getStatus() + " (" + getStatusName() + ")");
-            return false;
+    public Double getEffectiveWinProbability() {
+        if (defaultWinProbability != null) return defaultWinProbability;
+        if (region != null && region.getDefaultWinProbability() != null) {
+            return region.getDefaultWinProbability();
         }
-
-        // Then check event
-        if (event == null) {
-            System.out.println("EventLocation event null check failed");
-            return false;
-        }
-
-        boolean eventActive = event.isActive();
-        if (!eventActive) {
-            System.out.println("EventLocation event active check failed");
-            System.out.println("Event status: " + event.getStatus() + " (" + event.getStatusName() + ")");
-            System.out.println("Event start: " + event.getStartTime());
-            System.out.println("Event end: " + event.getEndTime());
-            System.out.println("Current time: " + LocalDateTime.now());
-            return false;
-        }
-
-        // Finally check region
-        if (region == null) {
-            System.out.println("EventLocation region null check failed");
-            return false;
-        }
-
-        boolean regionActive = region.isActive();
-        if (!regionActive) {
-            System.out.println("EventLocation region active check failed");
-            System.out.println("Region status: " + region.getStatus() + " (" + region.getStatusName() + ")");
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("EventLocation[id=%d, code=%s, name=%s]",
-                id, code, name);
+        return event.getDefaultWinProbability();
     }
 }

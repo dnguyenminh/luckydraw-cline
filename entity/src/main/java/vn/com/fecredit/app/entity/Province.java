@@ -1,11 +1,12 @@
 package vn.com.fecredit.app.entity;
 
-import java.util.HashSet;
-import java.util.Set;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "provinces")
@@ -16,61 +17,88 @@ import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 @AllArgsConstructor
 public class Province extends AbstractStatusAwareEntity {
 
-    private static final long serialVersionUID = 1L;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "name")
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(name = "code", unique = true)
+    @Column(nullable = false, length = 20, unique = true)
     private String code;
 
     @Column(name = "description")
     private String description;
 
-    @Column(name = "metadata")
-    private String metadata;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id")
+    @JoinColumn(name = "region_id", nullable = false)
+    @ToString.Exclude
     private Region region;
 
-    @OneToMany(mappedBy = "province", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "province")
     @Builder.Default
-    private Set<EventLocation> eventLocations = new HashSet<>();
+    @ToString.Exclude
+    private List<ParticipantEvent> participantEvents = new ArrayList<>();
 
-    @OneToMany(mappedBy = "province", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "province")
     @Builder.Default
-    private Set<Participant> participants = new HashSet<>();
+    @ToString.Exclude
+    private List<SpinHistory> spinHistories = new ArrayList<>();
 
-
-    // Participant management
-    public void addParticipant(Participant participant) {
-        participants.add(participant);
-        if (participant != null) {
-            participant.setProvince(this);
-        }
-    }
-
-    public void removeParticipant(Participant participant) {
-        participants.remove(participant);
-        if (participant != null && participant.getProvince() == this) {
-            participant.setProvince(null);
+    @Override
+    protected void onActivate() {
+        if (region == null || !region.isActive()) {
+            throw new IllegalStateException("Cannot activate province for inactive region");
         }
     }
 
     @Override
-    public String toString() {
-        return String.format("Province[id=%d, code=%s, name=%s, region=%s, locations=%d, participants=%d]",
-            id,
-            code,
-            name,
-            region != null ? region.getCode() : "null",
-            eventLocations.size(),
-            participants.size()
-        );
+    protected void onDeactivate() {
+        if (!participantEvents.isEmpty() && 
+            participantEvents.stream().anyMatch(pe -> pe.isActive())) {
+            throw new IllegalStateException("Cannot deactivate province with active participants");
+        }
+    }
+
+    @PrePersist
+    @PreUpdate
+    public void validateState() {
+        if (code != null) {
+            code = code.toUpperCase();
+        }
+        
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalStateException("Name is required");
+        }
+        
+        if (code == null || code.trim().isEmpty()) {
+            throw new IllegalStateException("Code is required");
+        }
+
+        if (region == null) {
+            throw new IllegalStateException("Region is required");
+        }
+    }
+
+    public boolean hasActiveParticipants() {
+        return !participantEvents.isEmpty() && 
+               participantEvents.stream().anyMatch(pe -> pe.isActive());
+    }
+
+    public int getActiveParticipantsCount() {
+        return (int) participantEvents.stream()
+                .filter(pe -> pe.isActive())
+                .count();
+    }
+
+    public int getTotalSpinsCount() {
+        return spinHistories.size();
+    }
+
+    public int getWinningSpinsCount() {
+        return (int) spinHistories.stream()
+                .filter(SpinHistory::isWin)
+                .count();
+    }
+
+    public double getWinRate() {
+        int totalSpins = getTotalSpinsCount();
+        return totalSpins > 0 ? (double) getWinningSpinsCount() / totalSpins : 0.0;
     }
 }

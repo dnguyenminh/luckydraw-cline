@@ -3,9 +3,11 @@ package vn.com.fecredit.app;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
+@EnableJpaAuditing
 //@EntityScan(basePackages = {
 //    "vn.com.fecredit.app.entity",
 //    "vn.com.fecredit.app.entity.base"

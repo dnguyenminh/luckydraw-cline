@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -79,4 +80,16 @@ public interface RewardRepository extends BaseRepository<Reward, Long> {
         @Param("startTime") LocalDateTime startTime,
         @Param("endTime") LocalDateTime endTime
     );
+
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Reward r " +
+           "WHERE r.id = :id AND r.remainingQuantity > 0")
+    boolean hasAvailableQuantity(@Param("id") Long id);
+
+    @Modifying
+    @Query("UPDATE Reward r SET r.remainingQuantity = :quantity WHERE r.id = :id")
+    void updateRemainingQuantity(@Param("id") Long id, @Param("quantity") Integer quantity);
+
+    @Modifying
+    @Query("UPDATE Reward r SET r.remainingQuantity = r.remainingQuantity - 1 WHERE r.id = :id AND r.remainingQuantity > 0")
+    void decrementRemainingQuantityById(@Param("id") Long id);
 }

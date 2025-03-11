@@ -18,7 +18,7 @@ class BlacklistedTokenTest extends BaseEntityTest {
         blacklistedToken.setToken(generateUniqueCode() + ".JWT." + generateUniqueCode());
         blacklistedToken.setTokenType("Bearer");
         blacklistedToken.setStatus(BlacklistedToken.STATUS_ACTIVE);
-        blacklistedToken.setExpiryDate(futureMinutes(30));
+        blacklistedToken.setExpiryTime(futureMinutes(30));
         blacklistedToken.setMetadata(generateMetadata("token"));
 
         user = new User();
@@ -28,20 +28,20 @@ class BlacklistedTokenTest extends BaseEntityTest {
 
     @Test
     void isExpired_WhenCurrentTimeIsAfterExpiryDate_ShouldReturnTrue() {
-        blacklistedToken.setExpiryDate(pastMinutes(1));
+        blacklistedToken.setExpiryTime(pastMinutes(1));
         assertTrue(blacklistedToken.isExpired());
     }
 
     @Test
     void isExpired_WhenCurrentTimeIsBeforeExpiryDate_ShouldReturnFalse() {
-        blacklistedToken.setExpiryDate(futureMinutes(1));
+        blacklistedToken.setExpiryTime(futureMinutes(1));
         assertFalse(blacklistedToken.isExpired());
     }
 
     @Test
     void isActive_WhenStatusActiveAndNotExpired_ShouldReturnTrue() {
         blacklistedToken.setStatus(BlacklistedToken.STATUS_ACTIVE);
-        blacklistedToken.setExpiryDate(futureMinutes(30));
+        blacklistedToken.setExpiryTime(futureMinutes(30));
         
         assertTrue(blacklistedToken.isActive());
     }
@@ -49,7 +49,7 @@ class BlacklistedTokenTest extends BaseEntityTest {
     @Test
     void isActive_WhenStatusActiveButExpired_ShouldReturnFalse() {
         blacklistedToken.setStatus(BlacklistedToken.STATUS_ACTIVE);
-        blacklistedToken.setExpiryDate(pastMinutes(1));
+        blacklistedToken.setExpiryTime(pastMinutes(1));
         
         assertFalse(blacklistedToken.isActive());
     }
@@ -57,7 +57,7 @@ class BlacklistedTokenTest extends BaseEntityTest {
     @Test
     void isActive_WhenStatusNotActive_ShouldReturnFalse() {
         blacklistedToken.setStatus(BlacklistedToken.STATUS_EXPIRED);
-        blacklistedToken.setExpiryDate(futureMinutes(30));
+        blacklistedToken.setExpiryTime(futureMinutes(30));
         
         assertFalse(blacklistedToken.isActive());
     }
@@ -93,9 +93,9 @@ class BlacklistedTokenTest extends BaseEntityTest {
     @Test
     void expiryDateComparison_ShouldBeAccurate() {
         LocalDateTime expiry = futureMinutes(1);
-        blacklistedToken.setExpiryDate(expiry);
+        blacklistedToken.setExpiryTime(expiry);
         
-        assertTrue(isWithinOneSecond(expiry, blacklistedToken.getExpiryDate()));
+        assertTrue(isWithinOneSecond(expiry, blacklistedToken.getExpiryTime()));
         assertFalse(blacklistedToken.isExpired());
         
         sleep(1100); // Wait just over 1 second

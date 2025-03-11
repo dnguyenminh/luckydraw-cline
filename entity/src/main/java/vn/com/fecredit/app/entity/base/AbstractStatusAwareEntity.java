@@ -9,13 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 @MappedSuperclass
 @Getter
 @Setter
@@ -28,6 +21,7 @@ public abstract class AbstractStatusAwareEntity extends AbstractAuditEntity {
 
     public static final int STATUS_ACTIVE = 1;
     public static final int STATUS_INACTIVE = 0;
+    public static final int STATUS_DELETED = -1;
 
     @Column(name = "status", nullable = false)
     @Builder.Default
@@ -38,10 +32,12 @@ public abstract class AbstractStatusAwareEntity extends AbstractAuditEntity {
     }
 
     public void activate() {
+        onActivate();
         this.status = STATUS_ACTIVE;
     }
 
     public void deactivate() {
+        onDeactivate();
         this.status = STATUS_INACTIVE;
     }
 
@@ -50,19 +46,16 @@ public abstract class AbstractStatusAwareEntity extends AbstractAuditEntity {
     }
 
     /**
-     * Helper method to create a deep copy of collections when using toBuilder()
+     * Called before activation. Override to add custom activation logic.
      */
-    @SuppressWarnings("unchecked")
-    protected static <T> T deepCopyIfNeeded(T obj) {
-        if (obj instanceof List) {
-            return (T) new ArrayList<>((List<?>) obj);
-        }
-        if (obj instanceof Set) {
-            return (T) new HashSet<>((Set<?>) obj);
-        }
-        if (obj instanceof Map) {
-            return (T) new HashMap<>((Map<?, ?>) obj);
-        }
-        return obj;
+    protected void onActivate() {
+        // Default implementation does nothing
+    }
+
+    /**
+     * Called before deactivation. Override to add custom deactivation logic.
+     */
+    protected void onDeactivate() {
+        // Default implementation does nothing
     }
 }

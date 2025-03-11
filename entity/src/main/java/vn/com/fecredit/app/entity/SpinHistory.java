@@ -1,10 +1,11 @@
 package vn.com.fecredit.app.entity;
 
-import java.time.LocalDateTime;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "spin_histories")
@@ -15,107 +16,84 @@ import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 @AllArgsConstructor
 public class SpinHistory extends AbstractStatusAwareEntity {
 
-    private static final long serialVersionUID = 1L;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "participant_id")
-    private Participant participant;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_location_id")
-    private EventLocation eventLocation;
+    @JoinColumn(name = "participant_event_id", nullable = false)
+    @ToString.Exclude
+    private ParticipantEvent participantEvent;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reward_id")
+    @ToString.Exclude
     private Reward reward;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "golden_hour_id")
-    private GoldenHour goldenHour;
-
-    @Column(name = "timestamp")
-    private LocalDateTime timestamp;
 
     @Column(name = "win")
     private Boolean win;
 
     @Column(name = "points_earned")
-    @Builder.Default
-    private Integer pointsEarned = 0;
+    private Integer pointsEarned;
 
-    @Column(name = "points_spent")
-    @Builder.Default
-    private Integer pointsSpent = 0;
+    @Column(name = "finalized")
+    private Boolean finalized;
+
+    @Column(name = "spin_time")
+    private LocalDateTime spinTime;
 
     @Column(name = "metadata")
     private String metadata;
 
-    // Legacy support methods
-    @Deprecated
-    public Event getEvent() {
-        return eventLocation != null ? eventLocation.getEvent() : null;
-    }
-
-    @Deprecated
-    public void setEvent(Event event) {
-        if (event != null && !event.getEventLocations().isEmpty()) {
-            this.eventLocation = event.getDefaultLocation();
+    @PrePersist
+    public void prePersist() {
+        if (spinTime == null) {
+            spinTime = LocalDateTime.now();
+        }
+        if (finalized == null) {
+            finalized = false;
+        }
+        if (win == null) {
+            win = false;
         }
     }
 
-    public void setWin(Boolean win) {
-        this.win = win;
-        updatePoints();
+    @PreUpdate
+    protected void validateState() {
+        if (participantEvent == null) {
+            throw new IllegalStateException("Participant event is required");
+        }
+        if (pointsEarned != null && pointsEarned < 0) {
+            throw new IllegalStateException("Points earned cannot be negative");
+        }
     }
 
     public boolean isWin() {
         return Boolean.TRUE.equals(win);
     }
 
-    private void updatePoints() {
-        if (isWin() && reward != null) {
-            this.pointsEarned = reward.getPoints() != null ? reward.getPoints() : 0;
-            this.pointsSpent = reward.getPointsRequired() != null ? reward.getPointsRequired() : 0;
-        } else {
-            this.pointsEarned = 0;
-            this.pointsSpent = 0;
-        }
+    public boolean isFinalized() {
+        return Boolean.TRUE.equals(finalized);
     }
 
-    public void setReward(Reward reward) {
+    public void finalize() {
+        if (isFinalized()) {
+            throw new IllegalStateException("Spin history already finalized");
+        }
+        finalized = true;
+    }
+
+    public void markAsWin(Reward reward, Integer pointsEarned) {
+        if (isFinalized()) {
+            throw new IllegalStateException("Cannot modify finalized spin history");
+        }
         this.reward = reward;
-        updatePoints();
+        this.pointsEarned = pointsEarned;
+        this.win = true;
     }
 
-    public Double calculateWinProbability() {
-        if (goldenHour != null && goldenHour.isActive(timestamp)) {
-            return goldenHour.getWinProbability();
+    public void markAsLoss() {
+        if (isFinalized()) {
+            throw new IllegalStateException("Cannot modify finalized spin history");
         }
-        return eventLocation != null ? eventLocation.getEffectiveDefaultWinProbability() : 0.0;
-    }
-
-    @Override
-    public boolean isActive() {
-        return super.isActive() &&
-               participant != null && participant.isActive() &&
-               eventLocation != null && eventLocation.isActive();
-    }
-
-    @Override
-    public String toString() {
-        return String.format("SpinHistory[id=%d, participant=%s, location=%s, reward=%s, win=%b, points=%d/%d, timestamp=%s]",
-            id,
-            participant != null ? participant.getCode() : "null",
-            eventLocation != null ? eventLocation.getCode() : "null",
-            reward != null ? reward.getCode() : "null",
-            isWin(),
-            pointsEarned,
-            pointsSpent,
-            timestamp
-        );
+        this.reward = null;
+        this.pointsEarned = 0;
+        this.win = false;
     }
 }

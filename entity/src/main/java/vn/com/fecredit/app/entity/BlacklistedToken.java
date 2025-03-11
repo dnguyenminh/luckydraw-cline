@@ -27,7 +27,7 @@ public class BlacklistedToken extends AbstractStatusAwareEntity {
     private String tokenType;
 
     @Column(nullable = false)
-    private LocalDateTime expiryDate;
+    private LocalDateTime expiryTime;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -39,7 +39,7 @@ public class BlacklistedToken extends AbstractStatusAwareEntity {
     private String reason;
 
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiryDate);
+        return LocalDateTime.now().isAfter(expiryTime);
     }
 
     public boolean isActive() {

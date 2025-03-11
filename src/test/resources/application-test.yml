@@ -1,47 +1,36 @@
 spring:
-  profiles: test
+  application:
+    name: luckydraw-test
+  profiles:
+    active: test
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: create-drop
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
         use_sql_comments: true
-        show_sql: false
+        
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
-    username: sa
-    password: ''
-    driver-class-name: org.h2.Driver
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/luckydraw_test
+    username: postgres
+    password: postgres
 
-monitoring:
-  performance:
-    report:
-      directory: ${java.io.tmpdir}/performance-reports
-      formats:
-        - text
-        - html
-        - json
-    thresholds:
-      latency:
-        warning: 100
-        critical: 500
-      throughput:
-        minimum: 1000
-      memory:
-        maximum-per-operation: 1024
-    sampling:
-      enabled: true
-      rate: 0.1
-    aggregation:
-      interval: 1000
-      window-size: 10000
+  flyway:
+    enabled: false
 
 logging:
   level:
-    root: WARN
-    vn.com.fecredit.app: DEBUG
-    org.springframework.test: INFO
+    root: INFO
+    org.springframework: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    vn.com.fecredit.app: DEBUG
+
+test:
+  data:
+    clean-before-tests: true
+    generate-test-data: true

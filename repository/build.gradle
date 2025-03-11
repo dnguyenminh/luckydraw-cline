@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' apply false
     id 'io.spring.dependency-management'
     id 'org.flywaydb.flyway' version '9.16.0'
+    id 'maven-publish'
 }
 
 group = 'vn.com.fecredit'
@@ -10,6 +11,7 @@ version = '0.0.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencyManagement {
@@ -18,20 +20,27 @@ dependencyManagement {
     }
 }
 
+configurations {
+    compileClasspath {
+        configurations.implementation.setCanBeResolved(true)
+    }
+}
+
 dependencies {
-    api project(":entity")  // Changed from implementation to api
+    api project(":entity")
     api 'org.springframework.boot:spring-boot-starter-data-jpa'
     api 'org.hibernate.validator:hibernate-validator'
     api 'jakarta.validation:jakarta.validation-api'
+    api 'org.glassfish:jakarta.el:4.0.2'
 
     implementation 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
 
-    implementation("org.projectlombok:lombok:1.18.30")
-    annotationProcessor("org.projectlombok:lombok:1.18.30")
+    compileOnly "org.projectlombok:lombok:1.18.30"
+    annotationProcessor "org.projectlombok:lombok:1.18.30"
 
-    testImplementation("org.projectlombok:lombok:1.18.30")
-    testAnnotationProcessor("org.projectlombok:lombok:1.18.30")
+    testCompileOnly "org.projectlombok:lombok:1.18.30"
+    testAnnotationProcessor "org.projectlombok:lombok:1.18.30"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
@@ -40,21 +49,74 @@ dependencies {
     testImplementation 'org.mockito:mockito-junit-jupiter'
 }
 
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+jar {
+    enabled = true
+    manifest {
+        attributes(
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Automatic-Module-Name': "vn.com.fecredit.app.repository"
+        )
+    }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    
+    // Include all sources
+    from sourceSets.main.output
+}
+
+//bootJar {
+//    enabled = false
+//}
+
 tasks.named('test') {
     useJUnitPlatform()
 }
 
-flyway {
-    // Replace the URL, user, and password with your database connection details.
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+}
 
-    def profile = System.getProperty('spring.profiles.active') ?: 'unknown'
-    def prefixDBName = "${profile}" == ""? "" : "${profile}_"
-    def dbName = "${prefixDBName}lucky_draw"
-    url="jdbc:postgresql://localhost:5432/${dbName}"
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            
+            // Add extra artifacts if needed
+            artifact(sourcesJar)
+            artifact(javadocJar)
+        }
+    }
+
+    repositories {
+        mavenLocal()
+    }
+}
+
+// Ensure repository classes are properly exposed
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+}
+
+flyway {
+    String profile = System.getProperty('spring.profiles.active', 'unknown')
+    String prefixDBName = profile == "" ? "" : "${profile}_"
+    String dbName = "${prefixDBName}lucky_draw"
+    url = "jdbc:postgresql://localhost:5432/${dbName}"
     user = 'postgres'
-    password='postgres'
+    password = 'postgres'
     schemas = ['public']
-    def cleanDisabledProp = project.findProperty('flyway.cleanDisabled') ?: 'false'
-    cleanDisabled = cleanDisabledProp.toBoolean()
+    cleanDisabled = (project.findProperty('flyway.cleanDisabled') ?: 'false').toBoolean()
     baselineOnMigrate = true
 }

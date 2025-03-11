@@ -1,128 +1,165 @@
-@startuml Luckydraw Entities
+@startuml Entities
 
-' Style settings
-skinparam class {
-    BackgroundColor white
-    ArrowColor #666666
-    BorderColor #666666
+' Abstract base entities
+abstract class AbstractPersistableEntity {
+    id: Long
 }
 
-' Entities
+abstract class AbstractAuditEntity {
+    createdAt: LocalDateTime
+    updatedAt: LocalDateTime
+    createdBy: String
+    updatedBy: String
+}
+
+abstract class AbstractStatusAwareEntity {
+    status: int
+    isActive(): boolean
+    activate()
+    deactivate()
+}
+
+' Main entities
 class User {
-    -Long id
-    -String username
-    -String password
-    -String email
-    -String firstName
-    -String lastName
-    -String phoneNumber
-    -String status
-    -boolean enabled
-    -LocalDateTime createdAt
-    -LocalDateTime updatedAt
+    username: String
+    password: String
+    firstName: String
+    lastName: String
+    fullName: String
+    email: String
+    phoneNumber: String
+    phone: String
+    department: String
+    position: String
+    refreshToken: String
+    metadata: String
+    enabled: boolean
+    accountNonLocked: boolean
+    accountNonExpired: boolean
+    credentialsNonExpired: boolean
+    failedAttempts: int
+    accountLocked: boolean
+    lockedUntil: LocalDateTime
+    passwordExpired: boolean
 }
 
 class Role {
-    -Long id
-    -String name 
-    -String description
-    -boolean isActive
-    -LocalDateTime createdAt 
-    -LocalDateTime updatedAt
+    name: String
 }
 
 class Event {
-    -Long id
-    -String code
-    -String name
-    -String description
-    -LocalDateTime startDate
-    -LocalDateTime endDate
-    -boolean isActive
-    -LocalDateTime createdAt
-    -LocalDateTime updatedAt
+    name: String
+    code: String
+    description: String
+    startTime: LocalDateTime
+    endTime: LocalDateTime
+    initialSpins: Integer
+    dailySpinLimit: Integer
+    defaultWinProbability: Double
+    metadata: String
 }
 
 class EventLocation {
-    -Long id
-    -Long eventId
-    -String location
-    -int totalSpins
-    -int remainingSpins
-    -int dailySpinLimit
-    -long spinsRemaining
-    -boolean isActive
-    -LocalDateTime createdAt
-    -LocalDateTime updatedAt
+    name: String
+    code: String
+    description: String
+    initialSpins: Integer
+    dailySpinLimit: Integer
+    defaultWinProbability: Double
+    metadata: String
+}
+
+class Region {
+    name: String
+    code: String
+    description: String
+    metadata: String
+}
+
+class Province {
+    name: String
+    code: String
+    description: String
 }
 
 class Participant {
-    -Long id
-    -Long userId
-    -String name
-    -String fullName
-    -String email
-    -String phoneNumber
-    -String province
-    -String customerId
-    -String employeeId
-    -String cardNumber
-    -Long spinsRemaining
-    -Long dailySpinLimit
-    -Boolean isActive
-    -Boolean isEligibleForSpin
-    -LocalDateTime createdAt
-    -LocalDateTime updatedAt
+    name: String
+    code: String
+    phone: String
+    email: String
+    metadata: String
+}
+
+class ParticipantEvent {
+    totalSpins: Integer
+    remainingSpins: Integer
+    initialSpins: Integer
+    metadata: String
 }
 
 class Reward {
-    -Long id
-    -String name
-    -String description
-    -String location
-    -String province
-    -int quantity
-    -int remainingQuantity
-    -boolean isActive
-    -Long eventId
-    -LocalDateTime createdAt
-    -LocalDateTime updatedAt
-}
-
-class SpinHistory {
-    -Long id
-    -Long participantId
-    -Long eventId
-    -Long eventLocationId
-    -String spinCode
-    -boolean isWin
-    -LocalDateTime spinTime
-    -LocalDateTime createdAt
-    -LocalDateTime updatedAt
+    name: String
+    code: String
+    description: String
+    points: Integer
+    pointsRequired: Integer
+    totalQuantity: Integer
+    remainingQuantity: Integer
+    dailyLimit: Integer
+    dailyCount: Integer
+    winProbability: Double
+    validFrom: LocalDateTime
+    validUntil: LocalDateTime
+    metadata: String
 }
 
 class GoldenHour {
-    -Long id
-    -Long eventId
-    -LocalDateTime startTime
-    -LocalDateTime endTime
-    -double multiplier
-    -boolean isActive
-    -LocalDateTime createdAt
-    -LocalDateTime updatedAt
+    name: String
+    description: String
+    startTime: LocalDateTime
+    endTime: LocalDateTime
+    winProbability: Double
+    metadata: String
 }
 
-' Relationships
-User "1" -{ "*" Role : has >
-User "1" --{ "*" Participant : referenced by >
-Role "*" }--{ "*" Participant : has >
-Event "1" --{ "*" EventLocation : has >
-EventLocation "1" --{ "*" Participant : hosts >
-EventLocation "1" --{ "*" SpinHistory : tracks >
-EventLocation "1" --{ "*" Reward : contains >
-EventLocation "1" -{ "*" GoldenHour : has >
-Participant "1" --{ "*" SpinHistory : performs >
-Reward "0..1" --{ "*" SpinHistory : awarded in >
-SpinHistory "1" - "0..1" GoldenHour : in
+class SpinHistory {
+    timestamp: LocalDateTime
+    win: Boolean
+    pointsEarned: Integer
+    pointsSpent: Integer
+    metadata: String
+}
+
+' Inheritance relationships
+AbstractPersistableEntity <|-- AbstractAuditEntity
+AbstractAuditEntity <|-- AbstractStatusAwareEntity
+AbstractStatusAwareEntity <|-- User
+AbstractStatusAwareEntity <|-- Role
+AbstractStatusAwareEntity <|-- Event
+AbstractStatusAwareEntity <|-- EventLocation
+AbstractStatusAwareEntity <|-- Region
+AbstractStatusAwareEntity <|-- Province
+AbstractStatusAwareEntity <|-- Participant
+AbstractStatusAwareEntity <|-- ParticipantEvent
+AbstractStatusAwareEntity <|-- Reward
+AbstractStatusAwareEntity <|-- GoldenHour
+AbstractStatusAwareEntity <|-- SpinHistory
+
+' Entity relationships
+User "1" *-- "1" Participant
+User "1" -- "*" Role
+Role "*" -- "*" User
+Event "1" -- "*" EventLocation
+EventLocation "1" -- "*" ParticipantEvent
+EventLocation "1" -- "*" Reward
+EventLocation "1" -- "*" GoldenHour
+EventLocation "1" -- "*" SpinHistory
+Region "1" -- "*" Province
+Region "1" -- "*" EventLocation
+Participant "1" -- "*" ParticipantEvent
+Participant "1" -- "*" SpinHistory
+ParticipantEvent "1" -- "*" SpinHistory
+Reward "1" -- "*" SpinHistory
+GoldenHour "1" -- "*" SpinHistory
 
 @enduml

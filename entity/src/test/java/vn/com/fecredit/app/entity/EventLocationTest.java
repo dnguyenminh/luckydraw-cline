@@ -1,152 +1,141 @@
 package vn.com.fecredit.app.entity;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import java.time.LocalDateTime;
-import java.util.LinkedHashSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import vn.com.fecredit.app.entity.base.BaseEntityTest;
 
-class EventLocationTest extends BaseEntityTest {
+class EventLocationTest {
 
     private EventLocation location;
     private Event event;
     private Region region;
-    private Province province;
 
     @BeforeEach
     void setUp() {
-        // Create event with default configuration
         event = Event.builder()
             .name("Test Event")
-            .code(generateUniqueCode())
-            .initialSpins(10)
-            .dailySpinLimit(5)
+            .code("TEST_EVENT")
+            .status(1)
+            .startTime(LocalDateTime.now())
+            .endTime(LocalDateTime.now().plusDays(7))
             .defaultWinProbability(0.1)
-            .status(Event.STATUS_ACTIVE)
-            .startTime(LocalDateTime.now().minusDays(1))
-            .endTime(LocalDateTime.now().plusDays(1))
-            .eventLocations(new LinkedHashSet<>())
-//            .rewards(new LinkedHashSet<>())
-//            .goldenHours(new LinkedHashSet<>())
-//            .spinHistories(new LinkedHashSet<>())
+            .dailySpinLimit(5)
+            .initialSpins(10)
             .build();
 
-        // Create region in active state
-        region = new Region();
-        region.setName("Test Region");
-        region.setCode(generateUniqueCode());
-        region.setStatus(Region.STATUS_ACTIVE);
+        region = Region.builder()
+            .name("Test Region")
+            .code("TEST_REG")
+            .status(1)
+            .defaultWinProbability(0.2)
+            .build();
 
-        // Create province in active state
-        province = new Province();
-        province.setName("Test Province");
-        province.setCode(generateUniqueCode());
-        province.setStatus(Province.STATUS_ACTIVE);
-
-        // Create location with Event linking
-        location = new EventLocation();
-        location.setName("Test Location");
-        location.setCode(generateUniqueCode());
-        location.setStatus(EventLocation.STATUS_ACTIVE);
+        location = EventLocation.builder()
+            .name("Test Location")
+            .code("TEST_LOC")
+            .status(1)
+            .event(event)
+            .region(region)
+            .build();
     }
 
     @Test
-    void testBasicProperties() {
-        // Reset location to test default values
-        location = new EventLocation();
-        location.setStatus(EventLocation.STATUS_ACTIVE);
-        
-        // Test null values before Event assignment
-        assertNull(location.getEffectiveInitialSpins());
-        assertNull(location.getEffectiveDailySpinLimit());
-        assertNull(location.getEffectiveDefaultWinProbability());
-        
-        // Assign Event and test inherited values
-        location.setEvent(event);
-        assertEquals(10, location.getEffectiveInitialSpins());
+    void testEffectiveValues() {
+        // Test event defaults
+        assertNull(location.getDailySpinLimit());
         assertEquals(5, location.getEffectiveDailySpinLimit());
-        assertEquals(0.1, location.getEffectiveDefaultWinProbability());
+        
+        assertNull(location.getInitialSpins());
+        assertEquals(10, location.getEffectiveInitialSpins());
+        
+        assertNull(location.getDefaultWinProbability());
+        assertEquals(0.2, location.getEffectiveWinProbability()); // Should use region's value
 
-        // Test overriding values
-        location.setInitialSpins(20);
-        location.setDailySpinLimit(8);
-        location.setDefaultWinProbability(0.2);
+        // Test location overrides
+        location.setDailySpinLimit(3);
+        location.setInitialSpins(7);
+        location.setDefaultWinProbability(0.3);
 
-        assertEquals(20, location.getEffectiveInitialSpins());
-        assertEquals(8, location.getEffectiveDailySpinLimit());
-        assertEquals(0.2, location.getEffectiveDefaultWinProbability());
+        assertEquals(3, location.getEffectiveDailySpinLimit());
+        assertEquals(7, location.getEffectiveInitialSpins());
+        assertEquals(0.3, location.getEffectiveWinProbability());
     }
 
     @Test
-    void testEventRelationship() {
-        // Create new Event with different configuration
-        Event newEvent = Event.builder()
-            .code(generateUniqueCode())
-            .name("Test Event 2")
-            .initialSpins(15)
-            .dailySpinLimit(7)
-            .defaultWinProbability(0.15)
-            .startTime(LocalDateTime.now().minusDays(1))
-            .endTime(LocalDateTime.now().plusDays(1))
-            .status(Event.STATUS_ACTIVE)
-            .eventLocations(new LinkedHashSet<>())
-//            .rewards(new LinkedHashSet<>())
-//            .goldenHours(new LinkedHashSet<>())
-//            .spinHistories(new LinkedHashSet<>())
+    void testActivationRules() {
+        // Test activation with inactive event
+        event.setStatus(0);
+        assertThrows(IllegalStateException.class, () -> location.activate());
+        event.setStatus(1);
+
+        // Test activation with inactive region
+        region.setStatus(0);
+        assertThrows(IllegalStateException.class, () -> location.activate());
+        region.setStatus(1);
+
+        // Test successful activation
+        assertDoesNotThrow(() -> location.activate());
+        assertTrue(location.isActive());
+    }
+
+    @Test
+    void testDeactivationWithActiveParticipants() {
+        ParticipantEvent participantEvent = ParticipantEvent.builder()
+            .status(1)
+            .eventLocation(location)
             .build();
+        location.getParticipantEvents().add(participantEvent);
 
-        // Reset location configuration and status
-        location = new EventLocation();
-        location.setName("Test Location");
-        location.setCode(generateUniqueCode());
-        location.setStatus(EventLocation.STATUS_ACTIVE);
-        
-        // Set new Event
-        location.setEvent(newEvent);
+        // Test deactivation with active participants
+        assertThrows(IllegalStateException.class, () -> location.deactivate());
 
-        // Verify relationship
-        assertTrue(newEvent.getEventLocations().contains(location));
-        assertEquals(newEvent, location.getEvent());
-
-        // Verify configuration inheritance
-        assertEquals(15, location.getEffectiveInitialSpins());
-        assertEquals(7, location.getEffectiveDailySpinLimit());
-        assertEquals(0.15, location.getEffectiveDefaultWinProbability());
-
-        // Test removal
-        location.setEvent(null);
-        assertFalse(newEvent.getEventLocations().contains(location));
-        assertNull(location.getEvent());
+        // Test successful deactivation
+        location.getParticipantEvents().clear();
+        assertDoesNotThrow(() -> location.deactivate());
+        assertFalse(location.isActive());
     }
 
     @Test
-    void testActiveStatus() {
-        location.setEvent(event);
-        location.setRegion(region);
-        location.activate();
-        
-        assertTrue(location.isActive(), "Should be active with all conditions met");
+    void testStateValidation() {
+        // Test code normalization
+        location.setCode("test_loc");
+        location.validateState();
+        assertEquals("TEST_LOC", location.getCode());
 
-        event.deactivate();
-        assertFalse(location.isActive(), "Should be inactive with inactive event");
+        // Test invalid values
+        location.setDailySpinLimit(-1);
+        assertThrows(IllegalStateException.class, () -> location.validateState());
 
-        event.activate();
-        region.deactivate();
-        assertFalse(location.isActive(), "Should be inactive with inactive region");
+        location.setDailySpinLimit(5);
+        location.setInitialSpins(-1);
+        assertThrows(IllegalStateException.class, () -> location.validateState());
 
-        region.activate();
-        assertTrue(location.isActive(), "Should be active with all entities active");
+        location.setInitialSpins(5);
+        location.setDefaultWinProbability(-0.1);
+        assertThrows(IllegalStateException.class, () -> location.validateState());
+
+        location.setDefaultWinProbability(1.1);
+        assertThrows(IllegalStateException.class, () -> location.validateState());
+
+        // Test null required relationships
+        EventLocation invalidLocation = EventLocation.builder()
+            .name("Invalid")
+            .code("INVALID")
+            .build();
+        assertThrows(IllegalStateException.class, () -> invalidLocation.validateState());
+
+        invalidLocation.setEvent(event);
+        assertThrows(IllegalStateException.class, () -> invalidLocation.validateState());
     }
 
     @Test
-    void testCollectionsInitialization() {
+    void testCollectionInitialization() {
         EventLocation newLocation = new EventLocation();
+        assertNotNull(newLocation.getParticipantEvents());
         assertNotNull(newLocation.getRewards());
         assertNotNull(newLocation.getGoldenHours());
         assertNotNull(newLocation.getSpinHistories());
-        assertTrue(newLocation.getRewards().isEmpty());
-        assertTrue(newLocation.getGoldenHours().isEmpty());
-        assertTrue(newLocation.getSpinHistories().isEmpty());
     }
 }
