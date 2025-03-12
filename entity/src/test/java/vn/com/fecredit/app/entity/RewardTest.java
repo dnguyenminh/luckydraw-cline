@@ -2,7 +2,7 @@ package vn.com.fecredit.app.entity;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import org.junit.jupiter.api.Test;
 
 class RewardTest {
@@ -14,8 +14,8 @@ class RewardTest {
             .code("TEST")
             .defaultWinProbability(0.5)
             .status(1)
-            .provinces(new ArrayList<>())
-            .eventLocations(new ArrayList<>())
+            .provinces(new LinkedHashSet<>())
+            .eventLocations(new LinkedHashSet<>())
             .build();
 
         assertNotNull(region);

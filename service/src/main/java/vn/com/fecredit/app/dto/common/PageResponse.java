@@ -11,6 +11,21 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PageResponse<T> extends BaseResponse {
+    // Explicitly add getter methods to ensure they're available
+    @Override
+    public boolean isSuccess() {
+        return super.isSuccess();
+    }
+    
+    @Override
+    public String getMessage() {
+        return super.getMessage();
+    }
+    
+    @Override
+    public String getErrorCode() {
+        return super.getErrorCode();
+    }
 
     private final List<T> content;
     private final Pagination pagination;

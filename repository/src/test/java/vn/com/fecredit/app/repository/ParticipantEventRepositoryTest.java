@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,7 +90,7 @@ class ParticipantEventRepositoryTest extends BaseRepositoryTest {
             .participant(participant)
             .eventLocation(location)
             .totalSpins(10)
-            .availableSpins(10)
+            .remainingSpins(10)
             .status(AbstractStatusAwareEntity.STATUS_ACTIVE)
             .build();
         persistAndFlush(participantEvent);
@@ -100,7 +101,7 @@ class ParticipantEventRepositoryTest extends BaseRepositoryTest {
 
         // Then
         assertTrue(found.isPresent());
-        assertEquals(10, found.get().getAvailableSpins());
+        assertEquals(10, found.get().getRemainingSpins());
     }
 
     @Test
@@ -110,7 +111,7 @@ class ParticipantEventRepositoryTest extends BaseRepositoryTest {
             .participant(participant)
             .eventLocation(location)
             .totalSpins(10)
-            .availableSpins(10)
+            .remainingSpins(10)
             .status(AbstractStatusAwareEntity.STATUS_ACTIVE)
             .build();
 
@@ -127,7 +128,7 @@ class ParticipantEventRepositoryTest extends BaseRepositoryTest {
             .participant(inactiveParticipant)
             .eventLocation(location)
             .totalSpins(10)
-            .availableSpins(10)
+            .remainingSpins(10)
             .status(AbstractStatusAwareEntity.STATUS_INACTIVE)
             .build();
 
@@ -135,12 +136,12 @@ class ParticipantEventRepositoryTest extends BaseRepositoryTest {
         persistAndFlush(inactive);
 
         // When
-        List<ParticipantEvent> activeEvents = participantEventRepository
-            .findStatusByLocation(location);
+        Set<ParticipantEvent> activeEvents = participantEventRepository
+            .findActiveByLocation(location);
 
         // Then
         assertThat(activeEvents).hasSize(1);
-        assertEquals(active.getId(), activeEvents.get(0).getId());
+        assertEquals(active.getId(), activeEvents.iterator().next().getId());
     }
 
     @Test
@@ -150,7 +151,7 @@ class ParticipantEventRepositoryTest extends BaseRepositoryTest {
             .participant(participant)
             .eventLocation(location)
             .totalSpins(10)
-            .availableSpins(10)
+            .remainingSpins(10)
             .status(AbstractStatusAwareEntity.STATUS_ACTIVE)
             .build();
 
@@ -167,7 +168,7 @@ class ParticipantEventRepositoryTest extends BaseRepositoryTest {
             .participant(participant2)
             .eventLocation(location)
             .totalSpins(10)
-            .availableSpins(10)
+            .remainingSpins(10)
             .status(AbstractStatusAwareEntity.STATUS_ACTIVE)
             .build();
 
@@ -175,7 +176,7 @@ class ParticipantEventRepositoryTest extends BaseRepositoryTest {
         persistAndFlush(active2);
 
         // When
-        long count = participantEventRepository.countStatusByLocation(location);
+        long count = participantEventRepository.countActiveByLocation(location);
 
         // Then
         assertEquals(2, count);

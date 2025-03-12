@@ -11,6 +11,7 @@ import vn.com.fecredit.app.entity.SpinHistory;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface SpinHistoryRepository extends JpaRepository<SpinHistory, Long> {
@@ -18,7 +19,7 @@ public interface SpinHistoryRepository extends JpaRepository<SpinHistory, Long> 
     // Basic queries
     Page<SpinHistory> findAllByParticipantEventId(Long participantEventId, Pageable pageable);
     
-    List<SpinHistory> findAllByParticipantEventIdAndSpinTimeBetween(
+    Set<SpinHistory> findAllByParticipantEventIdAndSpinTimeBetween(
         Long participantEventId, 
         LocalDateTime startTime, 
         LocalDateTime endTime
@@ -29,7 +30,7 @@ public interface SpinHistoryRepository extends JpaRepository<SpinHistory, Long> 
         WHERE sh.participantEvent.id = :participantEventId 
         AND CAST(sh.spinTime AS date) = CURRENT_DATE
         """)
-    List<SpinHistory> findTodaySpins(@Param("participantEventId") Long participantEventId);
+    Set<SpinHistory> findTodaySpins(@Param("participantEventId") Long participantEventId);
 
     @Query("""
         SELECT COUNT(sh) FROM SpinHistory sh 
@@ -65,13 +66,13 @@ public interface SpinHistoryRepository extends JpaRepository<SpinHistory, Long> 
         SELECT sh FROM SpinHistory sh 
         WHERE sh.participantEvent.event.id = :eventId
         """)
-    List<SpinHistory> findAllByEventId(@Param("eventId") Long eventId);
+    Set<SpinHistory> findAllByEventId(@Param("eventId") Long eventId);
 
     @Query("""
         SELECT sh FROM SpinHistory sh 
         WHERE sh.participantEvent.eventLocation.id = :locationId
         """)
-    List<SpinHistory> findAllByEventLocationId(@Param("locationId") Long locationId);
+    Set<SpinHistory> findAllByEventLocationId(@Param("locationId") Long locationId);
 
     // Time-based aggregate queries
     @Query("""

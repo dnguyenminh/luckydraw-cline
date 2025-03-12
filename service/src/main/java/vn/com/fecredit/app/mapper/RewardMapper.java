@@ -3,18 +3,19 @@ package vn.com.fecredit.app.mapper;
 import org.mapstruct.*;
 import vn.com.fecredit.app.dto.RewardDTO;
 import vn.com.fecredit.app.entity.Reward;
-import vn.com.fecredit.app.common.EntityStatus;
+import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
 @Mapper(componentModel = "spring", 
        unmappedTargetPolicy = ReportingPolicy.IGNORE,
-       imports = {LocalDateTime.class, EntityStatus.class})
+       imports = {LocalDateTime.class})
 public interface RewardMapper {
 
-    int STATUS_ACTIVE = 1;
-    int STATUS_INACTIVE = 0;
+    // Using constants from AbstractStatusAwareEntity
+    // int STATUS_ACTIVE = 1;
+    // int STATUS_INACTIVE = 0;
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "eventLocation.id", source = "eventLocationId")
@@ -56,13 +57,13 @@ public interface RewardMapper {
 
     default Integer mapActiveToStatus(Boolean active) {
         if (active == null) return null;
-        return active ? STATUS_ACTIVE : STATUS_INACTIVE;
+        return active ? AbstractStatusAwareEntity.STATUS_ACTIVE : AbstractStatusAwareEntity.STATUS_INACTIVE;
     }
 
     @AfterMapping
     default void afterToEntity(@MappingTarget Reward entity) {
         if (entity.getStatus() == 0) {
-            entity.setStatus(STATUS_ACTIVE);
+            entity.setStatus(AbstractStatusAwareEntity.STATUS_ACTIVE);
         }
 
         // Initialize timestamps if not set

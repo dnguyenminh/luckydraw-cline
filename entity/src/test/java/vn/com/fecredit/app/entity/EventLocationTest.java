@@ -6,12 +6,28 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Test class for the EventLocation entity.
+ * This class tests the functionality of the EventLocation entity, including:
+ * - Value inheritance and override mechanisms
+ * - Activation and deactivation rules
+ * - State validation
+ * - Collection initialization
+ * - Relationship management with other entities
+ */
 class EventLocationTest {
 
     private EventLocation location;
     private Event event;
     private Region region;
 
+    /**
+     * Sets up the test environment before each test.
+     * Creates and configures all necessary entities for testing EventLocation:
+     * - Event with time boundaries and default values
+     * - Region with default win probability
+     * - EventLocation linked to both event and region
+     */
     @BeforeEach
     void setUp() {
         event = Event.builder()
@@ -41,6 +57,13 @@ class EventLocationTest {
             .build();
     }
 
+    /**
+     * Tests the effective value calculation mechanism of EventLocation.
+     * Verifies that:
+     * - When location values are null, they inherit from event or region
+     * - When location values are set, they override the inherited values
+     * - Region values take precedence over event values for win probability
+     */
     @Test
     void testEffectiveValues() {
         // Test event defaults
@@ -63,6 +86,13 @@ class EventLocationTest {
         assertEquals(0.3, location.getEffectiveWinProbability());
     }
 
+    /**
+     * Tests the activation rules for EventLocation.
+     * Verifies that:
+     * - Location cannot be activated if its event is inactive
+     * - Location cannot be activated if its region is inactive
+     * - Location can be activated when both event and region are active
+     */
     @Test
     void testActivationRules() {
         // Test activation with inactive event
@@ -80,6 +110,12 @@ class EventLocationTest {
         assertTrue(location.isActive());
     }
 
+    /**
+     * Tests the deactivation rules for EventLocation.
+     * Verifies that:
+     * - Location cannot be deactivated if it has active participants
+     * - Location can be deactivated when it has no active participants
+     */
     @Test
     void testDeactivationWithActiveParticipants() {
         ParticipantEvent participantEvent = ParticipantEvent.builder()
@@ -97,6 +133,13 @@ class EventLocationTest {
         assertFalse(location.isActive());
     }
 
+    /**
+     * Tests the state validation rules for EventLocation.
+     * Verifies that:
+     * - Code is normalized to uppercase
+     * - Invalid numeric values throw exceptions
+     * - Required relationships must be present
+     */
     @Test
     void testStateValidation() {
         // Test code normalization
@@ -130,6 +173,10 @@ class EventLocationTest {
         assertThrows(IllegalStateException.class, () -> invalidLocation.validateState());
     }
 
+    /**
+     * Tests that collections are properly initialized in a new EventLocation.
+     * Verifies that all collection properties are non-null, even for a newly created instance.
+     */
     @Test
     void testCollectionInitialization() {
         EventLocation newLocation = new EventLocation();

@@ -11,7 +11,7 @@ import vn.com.fecredit.app.dto.UserDTO;
 import vn.com.fecredit.app.dto.UserSecurityDTO;
 import vn.com.fecredit.app.dto.ApiResponse;
 import vn.com.fecredit.app.mapper.UserMapper;
-import vn.com.fecredit.app.security.JwtService;
+import vn.com.fecredit.app.service.JwtService;
 import vn.com.fecredit.app.service.AuthenticationService;
 import vn.com.fecredit.app.service.UserService;
 

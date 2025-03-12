@@ -4,7 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.common.EntityStatus;
+import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.dto.RewardDTO;
 import vn.com.fecredit.app.entity.Event;
 import vn.com.fecredit.app.entity.EventLocation;
@@ -53,7 +53,7 @@ public class RewardServiceImpl implements RewardService {
         
         Reward reward = rewardMapper.toEntity(request);
         reward.setEventLocation(location);
-        reward.setStatus(EntityStatus.ACTIVE.getValue());
+        reward.setStatus(AbstractStatusAwareEntity.STATUS_ACTIVE);
         
         reward = rewardRepository.save(reward);
         return rewardMapper.toResponse(reward);
@@ -65,8 +65,8 @@ public class RewardServiceImpl implements RewardService {
         
         if (request.getActive() != null) {
             reward.setStatus(request.getActive() ? 
-                EntityStatus.ACTIVE.getValue() : 
-                EntityStatus.INACTIVE.getValue());
+                AbstractStatusAwareEntity.STATUS_ACTIVE : 
+                AbstractStatusAwareEntity.STATUS_INACTIVE);
         }
         
         rewardMapper.updateEntity(reward, request);
@@ -77,7 +77,7 @@ public class RewardServiceImpl implements RewardService {
     @Override
     public void delete(Long id) {
         Reward reward = getReward(id);
-        reward.setStatus(EntityStatus.INACTIVE.getValue());
+        reward.setStatus(AbstractStatusAwareEntity.STATUS_INACTIVE);
         rewardRepository.save(reward);
     }
 
@@ -96,7 +96,7 @@ public class RewardServiceImpl implements RewardService {
         return event.getEventLocations().stream()
             .map(location -> rewardRepository.findByLocationAndStatus(
                 location, 
-                EntityStatus.ACTIVE.getValue()
+                AbstractStatusAwareEntity.STATUS_ACTIVE
             ))
             .flatMap(List::stream)
             .map(rewardMapper::toResponse)
@@ -119,7 +119,7 @@ public class RewardServiceImpl implements RewardService {
         return event.getEventLocations().stream()
             .map(location -> rewardRepository.findByLocationAndStatus(
                 location, 
-                EntityStatus.ACTIVE.getValue()
+                AbstractStatusAwareEntity.STATUS_ACTIVE
             ))
             .flatMap(List::stream)
             .map(rewardMapper::toSummary)

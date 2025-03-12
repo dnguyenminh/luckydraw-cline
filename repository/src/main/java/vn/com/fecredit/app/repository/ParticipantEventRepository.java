@@ -3,6 +3,7 @@ package vn.com.fecredit.app.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -22,21 +23,21 @@ public interface ParticipantEventRepository extends BaseRepository<ParticipantEv
     );
 
     @Query("SELECT pe FROM ParticipantEvent pe WHERE pe.eventLocation = :eventLocation AND pe.status = 1")
-    List<ParticipantEvent> findStatusByLocation(@Param("eventLocation") EventLocation eventLocation);
+    Set<ParticipantEvent> findActiveByLocation(@Param("eventLocation") EventLocation eventLocation);
 
     @Query("SELECT COUNT(pe) FROM ParticipantEvent pe WHERE pe.eventLocation = :eventLocation AND pe.status = 1")
-    long countStatusByLocation(@Param("eventLocation") EventLocation eventLocation);
+    long countActiveByLocation(@Param("eventLocation") EventLocation eventLocation);
 
     @Query("SELECT pe FROM ParticipantEvent pe WHERE pe.eventLocation.event = :event AND pe.status = 1")
-    List<ParticipantEvent> findStatusByEvent(@Param("event") Event event);
+    Set<ParticipantEvent> findActiveByEvent(@Param("event") Event event);
 
     @Query("SELECT COUNT(pe) FROM ParticipantEvent pe WHERE pe.eventLocation.event = :event AND pe.status = 1")
-    long countStatusByEvent(@Param("event") Event event);
+    long countActiveByEvent(@Param("event") Event event);
 
     @Query("SELECT COUNT(pe) FROM ParticipantEvent pe " +
            "WHERE pe.participant = :participant AND pe.status = 1 " +
            "AND pe.eventLocation.event = :event")
-    long countStatusEventRegistrations(
+    long countActiveEventRegistrations(
         @Param("participant") Participant participant,
         @Param("event") Event event
     );
@@ -45,7 +46,7 @@ public interface ParticipantEventRepository extends BaseRepository<ParticipantEv
            "WHERE pe.participant = :participant " +
            "AND pe.eventLocation.event = :event " +
            "AND pe.status = 1")
-    List<ParticipantEvent> findStatusByParticipantAndEvent(
+    Set<ParticipantEvent> findActiveByParticipantAndEvent(
         @Param("participant") Participant participant,
         @Param("event") Event event
     );

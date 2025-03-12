@@ -6,6 +6,16 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Test class for the GoldenHour entity.
+ * This class tests the functionality of the GoldenHour entity, including:
+ * - Status management and transitions
+ * - Multiplier configurations
+ * - Relationship management with EventLocation
+ * - Time-based activation rules
+ * - Usage limit enforcement
+ * - Win probability calculations
+ */
 class GoldenHourTest {
 
     private static final int STATUS_INACTIVE = 0;
@@ -17,6 +27,14 @@ class GoldenHourTest {
     private LocalDateTime now;
     private Region region;
 
+    /**
+     * Sets up the test environment before each test.
+     * Creates and configures all necessary entities for testing GoldenHour:
+     * - Event with active status
+     * - Region with code and name
+     * - EventLocation linked to both event and region
+     * - GoldenHour with multipliers, time window, and location association
+     */
     @BeforeEach
     void setUp() {
         now = LocalDateTime.now();
@@ -56,12 +74,20 @@ class GoldenHourTest {
         goldenHour.setEndTime(now.plusHours(1));
     }
 
+    /**
+     * Tests that a newly created GoldenHour has the correct initial status.
+     * Verifies that the default status is inactive.
+     */
     @Test
     void testInitialStatus() {
         GoldenHour newGoldenHour = new GoldenHour();
         assertEquals(STATUS_INACTIVE, newGoldenHour.getStatus());
     }
 
+    /**
+     * Tests that status transitions work correctly for GoldenHour.
+     * Verifies that the status can be changed from inactive to active and back.
+     */
     @Test
     void testStatusTransitions() {
         goldenHour.setStatus(STATUS_ACTIVE);
@@ -71,6 +97,12 @@ class GoldenHourTest {
         assertEquals(STATUS_INACTIVE, goldenHour.getStatus());
     }
 
+    /**
+     * Tests the multiplier properties of GoldenHour.
+     * Verifies that:
+     * - Custom multiplier values are correctly stored
+     * - Default multiplier values are 1.0 for new instances
+     */
     @Test
     void testMultipliers() {
         assertEquals(2.0, goldenHour.getPointsMultiplier());
@@ -82,6 +114,10 @@ class GoldenHourTest {
         assertEquals(1.0, newGoldenHour.getWinProbabilityMultiplier());
     }
 
+    /**
+     * Tests the relationship between GoldenHour and EventLocation.
+     * Verifies that the GoldenHour can access its Event through the EventLocation.
+     */
     @Test
     void testEventLocationRelationship() {
         EventLocation newLocation = EventLocation.builder()
@@ -95,6 +131,13 @@ class GoldenHourTest {
         assertTrue(newLocation.getGoldenHours().contains(goldenHour));
     }
 
+    /**
+     * Tests the bidirectional relationship between GoldenHour and EventLocation.
+     * Verifies that:
+     * - Setting a new location updates the GoldenHour's reference
+     * - The GoldenHour is added to the new location's collection
+     * - The GoldenHour is removed from the old location's collection
+     */
     @Test
     void testLocationRelationship() {
         EventLocation newLocation = EventLocation.builder()
@@ -108,6 +151,13 @@ class GoldenHourTest {
         assertFalse(location.getGoldenHours().contains(goldenHour));
     }
 
+    /**
+     * Tests the active status determination of GoldenHour.
+     * Verifies that a GoldenHour is only active when:
+     * - Its status is active
+     * - Its location's status is active
+     * - Its event's status is active
+     */
     @Test
     void testActiveStatus() {
         goldenHour.setStatus(STATUS_ACTIVE);
@@ -126,6 +176,12 @@ class GoldenHourTest {
         assertFalse(goldenHour.isCurrentlyActive());
     }
 
+    /**
+     * Tests the time-based activation rules for GoldenHour.
+     * Verifies that a GoldenHour is only active when the current time is:
+     * - After its start time
+     * - Before its end time
+     */
     @Test
     void testTimeBasedActivation() {
         goldenHour.setStatus(STATUS_ACTIVE);
@@ -149,6 +205,13 @@ class GoldenHourTest {
         assertTrue(goldenHour.isCurrentlyActive());
     }
 
+    /**
+     * Tests the usage limit enforcement for GoldenHour.
+     * Verifies that:
+     * - Total uses can be incremented
+     * - Total uses can be reset
+     * - A GoldenHour becomes inactive when its daily limit is reached
+     */
     @Test
     void testUsageLimits() {
         goldenHour.setDailyLimit(5);
@@ -179,6 +242,13 @@ class GoldenHourTest {
         assertFalse(goldenHour.isCurrentlyActive());
     }
 
+    /**
+     * Tests the win probability calculation for GoldenHour.
+     * Verifies that:
+     * - GoldenHour can override the location's default win probability
+     * - Win probability multiplier is applied correctly
+     * - GoldenHour falls back to location's default when its own probability is null
+     */
     @Test
     void testWinProbability() {
         location.setDefaultWinProbability(0.1);

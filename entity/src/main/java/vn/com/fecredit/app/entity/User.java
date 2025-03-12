@@ -154,7 +154,7 @@ public class User extends AbstractStatusAwareEntity {
 
     public boolean hasRole(String roleName) {
         return getRoles().stream()
-                .anyMatch(role -> role.getName().name().equals(roleName));
+                .anyMatch(role -> role.getName().name().equals(roleName) && role.isActive());
     }
 
     public String getRefreshToken() {

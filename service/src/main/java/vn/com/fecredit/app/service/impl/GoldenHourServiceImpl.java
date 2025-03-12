@@ -42,7 +42,7 @@ public class GoldenHourServiceImpl implements GoldenHourService {
         GoldenHour entity = mapper.toEntity(request);
         entity.setEvent(event);
         entity.setReward(reward);
-        entity.setStatus(EntityStatus.ACTIVE);
+        entity.setStatus(AbstractStatusAwareEntity.STATUS_ACTIVE);
         
         GoldenHour saved = goldenHourRepository.save(entity);
         return mapper.toResponse(saved);

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,7 +77,7 @@ class EventRepositoryTest extends BaseRepositoryTest {
         entityManager.flush();
 
         // When
-        List<Event> activeEvents = eventRepository.findActive(
+        Set<Event> activeEvents = eventRepository.findActive(
                 AbstractStatusAwareEntity.STATUS_ACTIVE,
                 TEST_TIME
         );
@@ -101,7 +102,7 @@ class EventRepositoryTest extends BaseRepositoryTest {
         entityManager.flush();
 
         // When
-        List<Event> currentEvents = eventRepository.findCurrent(TEST_TIME);
+        Set<Event> currentEvents = eventRepository.findCurrent(TEST_TIME);
 
         // Then
         assertThat(currentEvents).hasSize(1);

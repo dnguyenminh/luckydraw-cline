@@ -6,6 +6,15 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Test class for the Event entity.
+ * This class tests the functionality of the Event entity, including:
+ * - Location management (adding/removing)
+ * - Province overlap validation
+ * - Time-based activation rules
+ * - Default location selection
+ * - Null handling in relationships
+ */
 class EventTest {
 
     private Event event;
@@ -16,6 +25,14 @@ class EventTest {
     private EventLocation location1;
     private EventLocation location2;
 
+    /**
+     * Sets up the test environment before each test.
+     * Creates and configures all necessary entities for testing Event:
+     * - Event with time boundaries and default values
+     * - Two regions for testing location associations
+     * - Two provinces for testing overlap validation
+     * - Two event locations for testing association management
+     */
     @BeforeEach
     void setUp() {
         LocalDateTime now = LocalDateTime.now();
@@ -68,6 +85,13 @@ class EventTest {
             .build();
     }
 
+    /**
+     * Tests the bidirectional relationship between Event and EventLocation.
+     * Verifies that:
+     * - Locations are properly added to the event's collection
+     * - The event reference is properly set in the locations
+     * - Removing a location updates both sides of the relationship
+     */
     @Test
     void testEventLocationAssociation() {
         region1.addProvince(province1);
@@ -93,6 +117,11 @@ class EventTest {
         assertNull(location1.getEvent());
     }
 
+    /**
+     * Tests that an event cannot have locations with overlapping provinces.
+     * Verifies that an exception is thrown when attempting to add a location
+     * with a region that contains a province already covered by another location's region.
+     */
     @Test
     void testOverlappingProvinces() {
         // Setup regions with overlapping province
@@ -110,6 +139,12 @@ class EventTest {
         });
     }
 
+    /**
+     * Tests the time-based activation rules for Event.
+     * Verifies that an event is only active when:
+     * - The current time is between the start and end times
+     * - Both start and end times are non-null
+     */
     @Test
     void testEventTimeBoundaryActivation() {
         LocalDateTime now = LocalDateTime.now();
@@ -135,6 +170,13 @@ class EventTest {
         assertFalse(event.isActive());
     }
 
+    /**
+     * Tests the default location selection mechanism.
+     * Verifies that:
+     * - The default location is null when no locations are added
+     * - The first location added becomes the default
+     * - The default location changes when the first location is removed
+     */
     @Test
     void testDefaultLocation() {
         assertNull(event.getDefaultLocation());
@@ -152,6 +194,10 @@ class EventTest {
         assertEquals(location2, event.getDefaultLocation());
     }
 
+    /**
+     * Tests that the event properly handles null locations.
+     * Verifies that adding or removing null locations does not cause exceptions.
+     */
     @Test
     void testNullLocationHandling() {
         assertDoesNotThrow(() -> event.addLocation(null));
@@ -159,6 +205,10 @@ class EventTest {
         assertTrue(event.getLocations().isEmpty());
     }
 
+    /**
+     * Tests that the event properly handles locations with null regions.
+     * Verifies that province overlap validation is skipped when a region is null.
+     */
     @Test
     void testOverlappingProvincesWithNull() {
         location1.setRegion(null);

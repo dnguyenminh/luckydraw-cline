@@ -8,6 +8,21 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DataResponse<T> extends BaseResponse {
+    // Explicitly add getter methods to ensure they're available
+    @Override
+    public boolean isSuccess() {
+        return super.isSuccess();
+    }
+    
+    @Override
+    public String getMessage() {
+        return super.getMessage();
+    }
+    
+    @Override
+    public String getErrorCode() {
+        return super.getErrorCode();
+    }
     private final T data;
 
     private DataResponse(T data) {

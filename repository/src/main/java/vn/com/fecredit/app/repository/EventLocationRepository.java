@@ -9,28 +9,29 @@ import vn.com.fecredit.app.repository.base.BaseRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface EventLocationRepository extends BaseRepository<EventLocation, Long> {
 
     Optional<EventLocation> findByCode(String code);
 
     @Query("SELECT el FROM EventLocation el WHERE el.event.id = :eventId AND el.status = :status")
-    List<EventLocation> findAllByEventIdAndStatus(@Param("eventId") Long eventId, @Param("status") int status);
+    Set<EventLocation> findAllByEventIdAndStatus(@Param("eventId") Long eventId, @Param("status") int status);
 
     @Query("SELECT el FROM EventLocation el WHERE el.region.id = :regionId AND el.status = :status")
-    List<EventLocation> findAllByRegionIdAndStatus(@Param("regionId") Long regionId, @Param("status") int status);
+    Set<EventLocation> findAllByRegionIdAndStatus(@Param("regionId") Long regionId, @Param("status") int status);
 
     @Query("SELECT el FROM EventLocation el WHERE el.province.id = :provinceId AND el.status = :status")
-    List<EventLocation> findAllByProvinceIdAndStatus(@Param("provinceId") Long provinceId, @Param("status") int status);
+    Set<EventLocation> findAllByProvinceIdAndStatus(@Param("provinceId") Long provinceId, @Param("status") int status);
 
     @Query("SELECT el FROM EventLocation el WHERE el.status = :status")
     Page<EventLocation> findAllByStatus(@Param("status") int status, Pageable pageable);
 
     @Query("SELECT el FROM EventLocation el WHERE el.status = :status")
-    List<EventLocation> findAllByStatus(@Param("status") int status);
+    Set<EventLocation> findAllByStatus(@Param("status") int status);
 
     @Query("SELECT el FROM EventLocation el WHERE el.event.id = :eventId")
-    List<EventLocation> findAllByEventId(@Param("eventId") Long eventId);
+    Set<EventLocation> findAllByEventId(@Param("eventId") Long eventId);
 
     @Query("SELECT CASE WHEN COUNT(el) > 0 THEN true ELSE false END FROM EventLocation el " +
            "WHERE el.region.id = :regionId AND el.province IN " +

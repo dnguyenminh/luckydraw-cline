@@ -3,9 +3,20 @@ package vn.com.fecredit.app.entity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Test class for the ParticipantEvent entity.
+ * This class tests the functionality of the ParticipantEvent entity, including:
+ * - Spin history management (adding/removing)
+ * - Spin count tracking
+ * - Daily limit enforcement
+ * - Win rate calculation
+ * - State validation
+ * - Activation/deactivation rules
+ */
 class ParticipantEventTest {
 
     private ParticipantEvent participantEvent;
@@ -13,12 +24,22 @@ class ParticipantEventTest {
     private EventLocation eventLocation;
     private Participant participant;
 
+    /**
+     * Sets up the test environment before each test.
+     * Creates and configures all necessary entities for testing ParticipantEvent:
+     * - Event with basic properties
+     * - EventLocation linked to the event
+     * - Participant with basic properties
+     * - ParticipantEvent connecting participant to event with initial spin counts
+     */
     @BeforeEach
     void setUp() {
         event = Event.builder()
                 .name("Test Event")
                 .code("TEST")
                 .status(1)
+                .startTime(LocalDateTime.now().minusDays(1))
+                .endTime(LocalDateTime.now().plusDays(1))
                 .build();
 
         eventLocation = EventLocation.builder()
@@ -44,6 +65,13 @@ class ParticipantEventTest {
                 .build();
     }
 
+    /**
+     * Tests that when a spin history is added to a participant event:
+     * - The daily spins used count is incremented
+     * - The remaining spins count is decremented
+     * - The spin history is added to the participant event's collection
+     * - The bidirectional relationship is established
+     */
     @Test
     void whenAddSpinHistory_thenUpdateCounts() {
         // Given
@@ -59,6 +87,13 @@ class ParticipantEventTest {
         assertThat(spinHistory.getParticipantEvent()).isEqualTo(participantEvent);
     }
 
+    /**
+     * Tests that when a spin history is removed from a participant event:
+     * - The daily spins used count is decremented
+     * - The remaining spins count is incremented
+     * - The spin history is removed from the participant event's collection
+     * - The bidirectional relationship is broken
+     */
     @Test
     void whenRemoveSpinHistory_thenUpdateCounts() {
         // Given
@@ -75,6 +110,10 @@ class ParticipantEventTest {
         assertThat(spinHistory.getParticipantEvent()).isNull();
     }
 
+    /**
+     * Tests that the hasRemainingSpins method correctly determines
+     * whether a participant has remaining spins available.
+     */
     @Test
     void whenHasRemainingSpins_thenReturnTrue() {
         assertThat(participantEvent.hasRemainingSpins()).isTrue();
@@ -83,6 +122,10 @@ class ParticipantEventTest {
         assertThat(participantEvent.hasRemainingSpins()).isFalse();
     }
 
+    /**
+     * Tests that the hasReachedDailyLimit method correctly determines
+     * whether a participant has reached their daily spin limit.
+     */
     @Test
     void whenHasReachedDailyLimit_thenReturnTrue() {
         assertThat(participantEvent.hasReachedDailyLimit()).isFalse();
@@ -91,6 +134,10 @@ class ParticipantEventTest {
         assertThat(participantEvent.hasReachedDailyLimit()).isTrue();
     }
 
+    /**
+     * Tests that the resetDailySpins method correctly resets
+     * the daily spins used counter to zero.
+     */
     @Test
     void whenResetDailySpins_thenResetCounter() {
         // Given
@@ -103,6 +150,10 @@ class ParticipantEventTest {
         assertThat(participantEvent.getDailySpinsUsed()).isZero();
     }
 
+    /**
+     * Tests that the getWinRate method correctly calculates
+     * the win rate based on the spin histories.
+     */
     @Test
     void whenCalculateWinRate_thenReturnCorrectRate() {
         // Given
@@ -121,6 +172,10 @@ class ParticipantEventTest {
         assertThat(winRate).isEqualTo(2.0 / 3.0);
     }
 
+    /**
+     * Tests that the validateState method correctly throws exceptions
+     * when the participant event is in an invalid state.
+     */
     @Test
     void whenValidateState_thenThrowExceptionForInvalidState() {
         ParticipantEvent invalid = ParticipantEvent.builder().build();
@@ -140,29 +195,37 @@ class ParticipantEventTest {
             .hasMessageContaining("Participant is required");
     }
 
+    /**
+     * Tests that the onActivate method correctly checks dependencies
+     * and throws exceptions when dependencies are inactive.
+     */
     @Test
     void whenActivate_thenCheckDependencies() {
         // Given
         event.setStatus(0);
         
         // When/Then
-        assertThatThrownBy(() -> participantEvent.onActivate())
+        assertThatThrownBy(() -> participantEvent.testOnActivate())
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("inactive event");
 
         event.setStatus(1);
         eventLocation.setStatus(0);
-        assertThatThrownBy(() -> participantEvent.onActivate())
+        assertThatThrownBy(() -> participantEvent.testOnActivate())
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("inactive location");
 
         eventLocation.setStatus(1);
         participant.setStatus(0);
-        assertThatThrownBy(() -> participantEvent.onActivate())
+        assertThatThrownBy(() -> participantEvent.testOnActivate())
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("inactive participant");
     }
 
+    /**
+     * Tests that the onDeactivate method correctly checks for pending spins
+     * and throws exceptions when there are unfinalized spins.
+     */
     @Test
     void whenDeactivate_thenCheckPendingSpins() {
         // Given

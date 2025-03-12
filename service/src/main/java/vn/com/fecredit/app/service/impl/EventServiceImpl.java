@@ -5,7 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.common.EntityStatus;
+import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.dto.EventDTO;
 import vn.com.fecredit.app.entity.Event;
 import vn.com.fecredit.app.exception.ResourceNotFoundException;
@@ -25,7 +25,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventDTO.Response createEvent(EventDTO.CreateRequest request) {
         Event event = eventMapper.toEntity(request);
-        event.setStatus(EntityStatus.ACTIVE.getValue());
+        event.setStatus(AbstractStatusAwareEntity.STATUS_ACTIVE);
         event = eventRepository.save(event);
         return eventMapper.toResponse(event);
     }
@@ -58,7 +58,7 @@ public class EventServiceImpl implements EventService {
     public void deleteEvent(Long id) {
         Event event = eventRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Event", id));
-        event.setStatus(EntityStatus.DELETED.getValue());
+        event.setStatus(AbstractStatusAwareEntity.STATUS_DELETED);
         eventRepository.save(event);
     }
 
@@ -68,8 +68,8 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public Page<EventDTO.Response> listEvents(EntityStatus status, Pageable pageable) {
-        return eventRepository.findByStatus(status.getValue(), pageable)
+    public Page<EventDTO.Response> listEvents(int status, Pageable pageable) {
+        return eventRepository.findByStatus(status, pageable)
             .map(eventMapper::toResponse);
     }
 
@@ -77,9 +77,9 @@ public class EventServiceImpl implements EventService {
     public Page<EventDTO.Response> searchEvents(String searchText, 
                                               LocalDateTime startDate, 
                                               LocalDateTime endDate, 
-                                              EntityStatus status, 
+                                              int status, 
                                               Pageable pageable) {
-        return eventRepository.findBySearchCriteria(searchText, startDate, endDate, status.getValue(), pageable)
+        return eventRepository.findBySearchCriteria(searchText, startDate, endDate, status, pageable)
             .map(eventMapper::toResponse);
     }
 
@@ -96,10 +96,10 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventDTO.Response updateEventStatus(Long id, EntityStatus status) {
+    public EventDTO.Response updateEventStatus(Long id, int status) {
         Event event = eventRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Event", id));
-        event.setStatus(status.getValue());
+        event.setStatus(status);
         event = eventRepository.save(event);
         return eventMapper.toResponse(event);
     }
@@ -118,7 +118,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public boolean hasActiveEvent() {
-        return eventRepository.existsByStatus(EntityStatus.ACTIVE.getValue());
+        return eventRepository.existsByStatus(AbstractStatusAwareEntity.STATUS_ACTIVE);
     }
 
     @Override

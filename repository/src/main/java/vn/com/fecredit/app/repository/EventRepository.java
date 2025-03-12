@@ -10,6 +10,7 @@ import vn.com.fecredit.app.entity.Event;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
     
@@ -34,12 +35,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     @Query("SELECT e FROM Event e WHERE e.status = :status " +
            "AND e.startTime <= :currentTime AND e.endTime >= :currentTime")
-    List<Event> findActive(@Param("status") int status, 
+    Set<Event> findActive(@Param("status") int status, 
                           @Param("currentTime") LocalDateTime currentTime);
 
     @Query("SELECT e FROM Event e WHERE e.startTime <= :currentTime " +
            "AND e.endTime >= :currentTime AND e.status = 1")
-    List<Event> findCurrent(@Param("currentTime") LocalDateTime currentTime);
+    Set<Event> findCurrent(@Param("currentTime") LocalDateTime currentTime);
 
     @Query("SELECT DISTINCT e FROM Event e " +
            "LEFT JOIN FETCH e.eventLocations el " +

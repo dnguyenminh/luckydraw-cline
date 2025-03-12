@@ -2,7 +2,7 @@ package vn.com.fecredit.app.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import vn.com.fecredit.app.common.EntityStatus;
+
 import vn.com.fecredit.app.dto.EventDTO;
 import java.time.LocalDateTime;
 
@@ -20,19 +20,19 @@ public interface EventService {
     
     Page<EventDTO.Response> getAllEvents(Pageable pageable);
     
-    Page<EventDTO.Response> listEvents(EntityStatus status, Pageable pageable);
+    Page<EventDTO.Response> listEvents(int status, Pageable pageable);
     
     Page<EventDTO.Response> searchEvents(String searchText, 
                                        LocalDateTime startDate, 
                                        LocalDateTime endDate, 
-                                       EntityStatus status, 
+                                       int status, 
                                        Pageable pageable);
 
     EventDTO.Statistics getEventStatistics();
     
     EventDTO.Statistics getEventStatistics(Long eventId);
     
-    EventDTO.Response updateEventStatus(Long id, EntityStatus status);
+    EventDTO.Response updateEventStatus(Long id, int status);
     
     boolean existsByCode(String code);
     
