@@ -1,0 +1,22 @@
+performance:
+  test:
+    concurrency-level: 20
+    operation-count: 1000
+    timeout-minutes: 5
+    detailed-metrics: true
+    
+    thresholds:
+      max-average-response-ms: 500
+      max-p95-response-ms: 1000
+      max-memory-per-op-kb: 50
+      max-error-rate: 1.0
+      max-gc-time-percentage: 10
+      max-cpu-usage-percentage: 80.0
+
+    monitoring:
+      sample-interval-ms: 100
+      enable-gc-monitoring: true
+      enable-cpu-profiling: true
+      enable-memory-tracking: true
+      enable-thread-state-tracking: true
+      output-directory: "target/performance-reports"

@@ -1,0 +1,50 @@
+DROP TABLE IF EXISTS region_configuration;
+DROP TABLE IF EXISTS spin_history;
+DROP TABLE IF EXISTS reward_allocation;
+DROP TABLE IF EXISTS reward;
+DROP TABLE IF EXISTS event_configuration;
+DROP TABLE IF EXISTS participant_event;
+DROP TABLE IF EXISTS participant;
+DROP TABLE IF EXISTS event_location;
+DROP TABLE IF EXISTS event;
+DROP TABLE IF EXISTS province;
+DROP TABLE IF EXISTS region;
+
+CREATE TABLE region (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    default_win_probability DOUBLE,
+    status INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(50),
+    updated_by VARCHAR(50)
+);
+
+CREATE TABLE province (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    region_id BIGINT NOT NULL,
+    default_win_probability DOUBLE,
+    status INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(50),
+    updated_by VARCHAR(50),
+    FOREIGN KEY (region_id) REFERENCES region(id)
+);
+
+CREATE TABLE event_location (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    region_id BIGINT NOT NULL,
+    status INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(50),
+    updated_by VARCHAR(50),
+    FOREIGN KEY (region_id) REFERENCES region(id)
+);

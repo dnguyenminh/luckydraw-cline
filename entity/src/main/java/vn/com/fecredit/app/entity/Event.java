@@ -105,10 +105,15 @@ public class Event extends AbstractStatusAwareEntity {
     @Column(name = "metadata")
     private String metadata;
 
-    /**
-     * The collection of locations where this event is taking place.
-     * Each location can have its own set of rewards and golden hours.
-     */
+    @ManyToMany
+    @JoinTable(
+        name = "event_provinces",
+        joinColumns = @JoinColumn(name = "event_id"),
+        inverseJoinColumns = @JoinColumn(name = "province_id")
+    )
+    @Builder.Default
+    private Set<Province> provinces = new LinkedHashSet<>();
+
     @OneToMany(mappedBy = "event", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @Builder.Default
     private Set<EventLocation> eventLocations = new LinkedHashSet<>();

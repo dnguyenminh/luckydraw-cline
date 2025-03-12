@@ -64,3 +64,4 @@ openapi.json
 *.class
 *.jar
 !gradle-wrapper.jar
+.qodo

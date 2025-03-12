@@ -323,11 +323,13 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
     
     /**
      * Increments the spin count for this participant in this event.
-     * This is called when a participant uses a spin.
      */
     public void incrementSpinCount() {
-        // The spin count is tracked through the spinHistories collection
-        // and the dailySpinsUsed counter, which are updated in addSpinHistory
+        totalSpins++;
+        dailySpinsUsed++;
+        if (remainingSpins > 0) {
+            remainingSpins--;
+        }
     }
     
     /**
