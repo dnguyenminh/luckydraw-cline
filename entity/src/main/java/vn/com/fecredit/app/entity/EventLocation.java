@@ -19,9 +19,10 @@ import java.util.Set;
  * win probabilities, spin limits, and available rewards.
  */
 @Entity
-@Table(name = "event_locations")
+@Table(name = "event_locations", schema = "public")
 @Getter
 @Setter
+@ToString(callSuper = true, onlyExplicitlyIncluded = true)
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,12 +31,14 @@ public class EventLocation extends AbstractStatusAwareEntity {
     /**
      * The name of the event location displayed to users.
      */
+    @ToString.Include
     @Column(nullable = false, length = 100)
     private String name;
 
     /**
      * Unique code identifier for the location, used in APIs and references.
      */
+    @ToString.Include
     @Column(nullable = false, length = 20, unique = true)
     private String code;
 
@@ -76,54 +79,54 @@ public class EventLocation extends AbstractStatusAwareEntity {
      * The event that this location is part of.
      * This establishes the many-to-one relationship with the Event entity.
      */
+    @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
-    @ToString.Exclude
     private Event event;
 
     /**
      * The region that this location is associated with.
      * This establishes the many-to-one relationship with the Region entity.
      */
+    @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id", nullable = false)
-    @ToString.Exclude
     private Region region;
 
     /**
      * The collection of participant event records associated with this location.
      * This establishes the one-to-many relationship with the ParticipantEvent entity.
      */
+    @ToString.Exclude
     @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @ToString.Exclude
     private Set<ParticipantEvent> participantEvents = new LinkedHashSet<>();
 
     /**
      * The collection of rewards available at this location.
      * This establishes the one-to-many relationship with the Reward entity.
      */
+    @ToString.Exclude
     @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @ToString.Exclude
     private Set<Reward> rewards = new LinkedHashSet<>();
 
     /**
      * The collection of golden hours scheduled at this location.
      * This establishes the one-to-many relationship with the GoldenHour entity.
      */
+    @ToString.Exclude
     @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @ToString.Exclude
     private Set<GoldenHour> goldenHours = new LinkedHashSet<>();
 
     /**
      * The collection of spin history records associated with this location.
      * This establishes the one-to-many relationship with the SpinHistory entity.
      */
+    @ToString.Exclude
     @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @ToString.Exclude
     private Set<SpinHistory> spinHistories = new LinkedHashSet<>();
 
     /**
@@ -226,5 +229,18 @@ public class EventLocation extends AbstractStatusAwareEntity {
             return region.getDefaultWinProbability();
         }
         return event.getDefaultWinProbability();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof EventLocation)) return false;
+        EventLocation other = (EventLocation) o;
+        return code != null && code.equals(other.getCode());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

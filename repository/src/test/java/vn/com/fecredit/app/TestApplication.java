@@ -4,7 +4,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
 @EnableJpaAuditing
@@ -12,7 +11,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 //    "vn.com.fecredit.app.entity",
 //    "vn.com.fecredit.app.entity.base"
 //})
-@EnableJpaRepositories(basePackages = "vn.com.fecredit.app.repository")
+// Removed duplicate @EnableJpaRepositories annotation as it's already defined in TestConfig
 //@ComponentScan(basePackages = {
 //    "vn.com.fecredit.app.repository",
 //    "vn.com.fecredit.app.repository.test"

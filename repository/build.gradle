@@ -1,10 +1,20 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'io.spring.gradle:dependency-management-plugin:1.1.4'
+        classpath 'org.flywaydb:flyway-gradle-plugin:9.16.0'
+    }
+}
+
 plugins {
     id 'java-library'
-    id 'org.springframework.boot' apply false
-    id 'io.spring.dependency-management'
-    id 'org.flywaydb.flyway' version '9.16.0'
     id 'maven-publish'
 }
+
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'org.flywaydb.flyway'
 
 group = 'vn.com.fecredit'
 version = '0.0.1-SNAPSHOT'
@@ -16,7 +26,7 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        mavenBom 'org.springframework.boot:spring-boot-dependencies:3.2.2'
     }
 }
 
@@ -57,11 +67,11 @@ java {
 jar {
     enabled = true
     manifest {
-        attributes(
+        attributes([
             'Implementation-Title': project.name,
             'Implementation-Version': project.version,
             'Automatic-Module-Name': "vn.com.fecredit.app.repository"
-        )
+        ])
     }
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     

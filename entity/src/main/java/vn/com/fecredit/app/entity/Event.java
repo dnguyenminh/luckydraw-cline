@@ -3,6 +3,7 @@ package vn.com.fecredit.app.entity;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import jakarta.persistence.*;
@@ -17,7 +18,7 @@ import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
  * such as spin limits and default win probability.
  */
 @Entity
-@Table(name = "events")
+@Table(name = "events", schema = "public")
 @Getter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
@@ -105,7 +106,12 @@ public class Event extends AbstractStatusAwareEntity {
     @Column(name = "metadata")
     private String metadata;
 
-    @ManyToMany
+    /**
+     * The set of provinces associated with this event.
+     * Managed through the event_provinces join table.
+     */
+    @ToString.Exclude
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "event_provinces",
         joinColumns = @JoinColumn(name = "event_id"),
@@ -114,21 +120,14 @@ public class Event extends AbstractStatusAwareEntity {
     @Builder.Default
     private Set<Province> provinces = new LinkedHashSet<>();
 
+    /**
+     * The collection of event locations associated with this event.
+     * This establishes a one-to-many relationship with EventLocation entity.
+     */
+    @ToString.Exclude
     @OneToMany(mappedBy = "event", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @Builder.Default
     private Set<EventLocation> eventLocations = new LinkedHashSet<>();
-
-//    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
-//    @Builder.Default
-//    private Set<Reward> rewards = new LinkedHashSet<>();
-
-//    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
-//    @Builder.Default
-//    private Set<GoldenHour> goldenHours = new LinkedHashSet<>();
-
-//    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
-//    @Builder.Default
-//    private Set<SpinHistory> spinHistories = new LinkedHashSet<>();
 
     /**
      * Gets all locations associated with this event.
@@ -139,12 +138,6 @@ public class Event extends AbstractStatusAwareEntity {
     public Set<EventLocation> getLocations() {
         return eventLocations;
     }
-
-//    public Set<ParticipantEvent> getParticipants() {
-//        return eventLocations.stream()
-//            .flatMap(location -> location.getParticipantEvents().stream())
-//            .collect(Collectors.toSet());
-//    }
 
     /**
      * Adds a location to this event.
@@ -193,18 +186,17 @@ public class Event extends AbstractStatusAwareEntity {
     }
 
     /**
-     * Checks if a new location's provinces overlap with any existing location's provinces.
-     * This prevents the same province from being covered by multiple locations in the same event.
+     * Checks if the provinces of a new location overlap with the provinces of existing locations.
      * 
-     * @param newLocation the location to check for overlapping provinces
-     * @return true if there are overlapping provinces, false otherwise
+     * @param newLocation the new location to check
+     * @return true if there is an overlap, false otherwise
      */
     public boolean hasOverlappingProvinces(EventLocation newLocation) {
         if (newLocation == null || newLocation.getRegion() == null) {
             return false;
         }
 
-        Set<Province> newLocationProvinces = newLocation.getRegion().getProvinces();
+        List<Province> newLocationProvinces = newLocation.getRegion().getProvinces();
         Set<Province> existingProvinces = eventLocations.stream()
             .map(EventLocation::getRegion)
             .filter(region -> region != null)
@@ -223,30 +215,14 @@ public class Event extends AbstractStatusAwareEntity {
     @Override
     public boolean isActive() {
         boolean baseActive = super.isActive();
-        if (!baseActive) {
-            System.out.println("Event base status check failed");
-            return false;
-        }
+        if (!baseActive) return false;
 
-        // For testing purposes, if both start and end times are set in the test,
-        // we'll consider the event active regardless of current time
         if (startTime != null && endTime != null) {
             LocalDateTime now = LocalDateTime.now();
-            boolean timeValid = (now.isEqual(startTime) || now.isAfter(startTime)) && 
-                              (now.isEqual(endTime) || now.isBefore(endTime));
-            
-            if (!timeValid) {
-                System.out.println("Event time range check failed");
-                System.out.println("now: " + now);
-                System.out.println("startTime: " + startTime);
-                System.out.println("endTime: " + endTime);
-                return false;
-            }
-            return true;
-        } else {
-            System.out.println("Event time range null check failed");
-            return false;
+            return (now.isEqual(startTime) || now.isAfter(startTime)) && 
+                   (now.isEqual(endTime) || now.isBefore(endTime));
         }
+        return false;
     }
 
     /**
@@ -258,5 +234,38 @@ public class Event extends AbstractStatusAwareEntity {
     public String toString() {
         return String.format("Event[id=%d, code=%s, name=%s]",
                 id, code, name);
+    }
+
+    /**
+     * The total number of spins remaining for this event.
+     */
+    @Setter
+    @Column(name = "remaining_spins")
+    private Long remainingSpins;
+
+    /**
+     * Adds a province to this event.
+     * Establishes the bidirectional relationship between event and province.
+     * 
+     * @param province the province to add
+     */
+    public void addProvince(Province province) {
+        if (province != null) {
+            provinces.add(province);
+            province.getEvents().add(this);
+        }
+    }
+
+    /**
+     * Removes a province from this event.
+     * Breaks the bidirectional relationship between event and province.
+     * 
+     * @param province the province to remove
+     */
+    public void removeProvince(Province province) {
+        if (province != null) {
+            provinces.remove(province);
+            province.getEvents().remove(this);
+        }
     }
 }

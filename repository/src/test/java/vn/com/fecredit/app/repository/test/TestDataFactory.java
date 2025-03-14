@@ -1,13 +1,60 @@
 package vn.com.fecredit.app.repository.test;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
-import vn.com.fecredit.app.entity.Role;
-import vn.com.fecredit.app.entity.User;
+import vn.com.fecredit.app.entity.*;
+import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.enums.RoleName;
 
 public class TestDataFactory {
+    private static long regionCounter = 1;
+    private static long provinceCounter = 1;
+
+    public static Region createRegion(String code, String name) {
+        return Region.builder()
+                .code(code)
+                .name(name)
+                .status(AbstractStatusAwareEntity.STATUS_ACTIVE)
+                .createdAt(LocalDateTime.now())
+                .createdBy("test")
+                .updatedAt(LocalDateTime.now())
+                .updatedBy("test")
+                .version(0L)
+                .provinces(new ArrayList<>())
+                .build();
+    }
+
+    public static Province createProvince(String code, String name) {
+        return Province.builder()
+                .code(code)
+                .name(name)
+                .status(AbstractStatusAwareEntity.STATUS_ACTIVE)
+                .createdAt(LocalDateTime.now())
+                .createdBy("test")
+                .updatedAt(LocalDateTime.now())
+                .updatedBy("test")
+                .version(0L)
+                .build();
+    }
+
+    public static EventLocation createEventLocation(Event event, Region region, String code, String name) {
+        return EventLocation.builder()
+                .event(event)
+                .region(region)
+                .code(code)
+                .name(name)
+                .description("Test location description")
+                .status(AbstractStatusAwareEntity.STATUS_ACTIVE)
+                .createdAt(LocalDateTime.now())
+                .createdBy("test")
+                .updatedAt(LocalDateTime.now())
+                .updatedBy("test")
+                .version(0L)
+                .build();
+    }
 
     public static User createDefaultUser() {
         return User.builder()

@@ -14,15 +14,17 @@ import java.util.Set;
 @Table(name = "provinces")
 @Getter
 @Setter
-@ToString(callSuper = true)
+@ToString(callSuper = true, onlyExplicitlyIncluded = true)
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Province extends AbstractStatusAwareEntity {
 
+    @ToString.Include
     @Column(nullable = false, length = 100)
     private String name;
 
+    @ToString.Include
     @Column(nullable = false, length = 20)
     private String code;
 
@@ -34,6 +36,9 @@ public class Province extends AbstractStatusAwareEntity {
 
     @Column(name = "metadata")
     private String metadata;
+    
+    @Column(name = "default_win_probability")
+    private Double defaultWinProbability;
 
     @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
@@ -46,7 +51,7 @@ public class Province extends AbstractStatusAwareEntity {
     private List<Participant> participants = new ArrayList<>();
 
     @ToString.Exclude
-    @ManyToMany(mappedBy = "provinces")
+    @ManyToMany(mappedBy = "provinces", fetch = FetchType.LAZY)
     @Builder.Default
     private Set<Event> events = new HashSet<>();
 
@@ -72,12 +77,6 @@ public class Province extends AbstractStatusAwareEntity {
         }
     }
 
-    @Override
-    public String toString() {
-        return String.format("Province[id=%d, code=%s, name=%s]",
-                getId(), code, name);
-    }
-
     public void addParticipant(Participant participant) {
         participants.add(participant);
         participant.setProvince(this);
@@ -96,6 +95,26 @@ public class Province extends AbstractStatusAwareEntity {
     public void removeEvent(Event event) {
         events.remove(event);
         event.getProvinces().remove(this);
+    }
+    
+    /**
+     * Gets the effective default win probability for this province.
+     * If the province has its own default win probability set, that value is used.
+     * Otherwise, it falls back to the region's default win probability.
+     * If neither is set, returns 0.0 as a default value.
+     *
+     * @return the effective default win probability
+     */
+    public Double getEffectiveDefaultWinProbability() {
+        if (defaultWinProbability != null) {
+            return defaultWinProbability;
+        }
+        
+        if (region != null && region.getDefaultWinProbability() != null) {
+            return region.getDefaultWinProbability();
+        }
+        
+        return 0.0;
     }
 
     @Override

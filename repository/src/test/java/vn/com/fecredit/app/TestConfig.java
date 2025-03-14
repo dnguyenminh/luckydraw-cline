@@ -9,12 +9,18 @@ import org.springframework.test.context.ActiveProfiles;
 
 @Configuration
 @AutoConfigureDataJpa
-//@EntityScan(basePackages = "vn.com.fecredit.app.entity")
-@EnableJpaRepositories(basePackages = "vn.com.fecredit.app.repository")
-//@ComponentScan(basePackages = {
-//    "vn.com.fecredit.app.repository",
-//    "vn.com.fecredit.app.repository.test"
-//})
+@EntityScan(basePackages = {
+    "vn.com.fecredit.app.entity",
+    "vn.com.fecredit.app.entity.base"
+})
+@EnableJpaRepositories(
+    basePackages = "vn.com.fecredit.app.repository",
+    considerNestedRepositories = true
+)
+@ComponentScan(basePackages = {
+    "vn.com.fecredit.app.repository",
+    "vn.com.fecredit.app.repository.test"
+})
 @ActiveProfiles("test")
 public class TestConfig {
 }

@@ -72,8 +72,26 @@ class EventLocation {
 class Region {
     name: String
     code: String
-    description: String
-    metadata: String
+    defaultWinProbability: Double
+    provinces: List<Province>
+    eventLocations: List<EventLocation>
+
+    setCode(code: String)
+    normalizeCode()  // @PrePersist @PreUpdate
+    addProvince(province: Province)
+    removeProvince(province: Province)
+    addEventLocation(location: EventLocation)
+    removeEventLocation(location: EventLocation)
+    getProvinceCount(): int
+    getLocationCount(): int
+    getActiveProvinceCount(): int
+    getActiveLocationCount(): int
+    getProvinceActivationRate(): double
+    getLocationActivationRate(): double
+    hasActiveProvinces(): boolean
+    hasActiveEventLocations(): boolean
+    hasProvinces(): boolean
+    hasEventLocations(): boolean
 }
 
 class Province {

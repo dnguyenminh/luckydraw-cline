@@ -2,10 +2,10 @@ package vn.com.fecredit.app.entity;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 
-class RewardTest {
+class RegionTest {
 
     @Test
     void testRegionBuilder() {
@@ -14,8 +14,8 @@ class RewardTest {
             .code("TEST")
             .defaultWinProbability(0.5)
             .status(1)
-            .provinces(new LinkedHashSet<>())
-            .eventLocations(new LinkedHashSet<>())
+            .provinces(new ArrayList<>())
+            .eventLocations(new ArrayList<>())
             .build();
 
         assertNotNull(region);
@@ -70,15 +70,9 @@ class RewardTest {
     }
 
     @Test
-    void testValidateState() {
-        Region region = Region.builder()
-            .name("Test Region")
-            .code("test")
-            .build();
-
-        // Trigger PrePersist/PreUpdate
-        region.validateState();
-        
+    void testCodeNormalization() {
+        Region region = new Region();
+        region.setCode("test");
         assertEquals("TEST", region.getCode());
     }
 

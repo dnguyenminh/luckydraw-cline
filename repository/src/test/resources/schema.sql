@@ -1,234 +1,196 @@
--- Test database schema setup
+-- Drop tables in correct order
+DROP TABLE IF EXISTS spin_histories;
+DROP TABLE IF EXISTS golden_hours;
+DROP TABLE IF EXISTS rewards;
+DROP TABLE IF EXISTS participant_events;
+DROP TABLE IF EXISTS user_roles;
+DROP TABLE IF EXISTS event_provinces;
+DROP TABLE IF EXISTS event_locations;
+DROP TABLE IF EXISTS provinces;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS regions;
+DROP TABLE IF EXISTS roles;
+DROP TABLE IF EXISTS users;
 
--- Create database objects in correct order
-CREATE TABLE IF NOT EXISTS users
-(
-    id                      BIGSERIAL PRIMARY KEY,
-    username                VARCHAR(50)  NOT NULL UNIQUE,
-    password                VARCHAR(255) NOT NULL,
-    first_name              VARCHAR(50),
-    last_name               VARCHAR(50),
-    email                   VARCHAR(255),
-    phone_number            VARCHAR(20),
-    position                VARCHAR(100),
-    refresh_token           VARCHAR(255),
-    metadata                TEXT,
-    account_non_locked      BOOLEAN               DEFAULT TRUE,
-    account_non_expired     BOOLEAN               DEFAULT TRUE,
-    credentials_non_expired BOOLEAN               DEFAULT TRUE,
-    failed_attempts         INTEGER               DEFAULT 0,
-    account_locked          BOOLEAN               DEFAULT FALSE,
-    locked_until            TIMESTAMP,
-    password_expired        BOOLEAN               DEFAULT FALSE,
-    status                  INTEGER               DEFAULT 1,
-    version                 BIGINT       NOT NULL DEFAULT 0,
-    created_at              TIMESTAMP    NOT NULL,
-    updated_at              TIMESTAMP,
-    created_by              VARCHAR(255),
-    updated_by              VARCHAR(255)
-);
-
-CREATE TABLE IF NOT EXISTS roles
-(
-    id          BIGSERIAL PRIMARY KEY,
-    name        VARCHAR(50) NOT NULL UNIQUE,
-    description VARCHAR(255),
-    status      INTEGER              DEFAULT 1,
-    version     BIGINT      NOT NULL DEFAULT 0,
-    created_at  TIMESTAMP   NOT NULL,
-    updated_at  TIMESTAMP,
-    created_by  VARCHAR(255),
-    updated_by  VARCHAR(255)
-);
-
-CREATE TABLE IF NOT EXISTS user_roles
-(
-    user_id BIGINT NOT NULL REFERENCES users (id),
-    role_id BIGINT NOT NULL REFERENCES roles (id),
-    PRIMARY KEY (user_id, role_id)
-);
-
-CREATE TABLE IF NOT EXISTS regions
-(
-    id          BIGSERIAL PRIMARY KEY,
-    code        VARCHAR(50)  NOT NULL UNIQUE,
-    name        VARCHAR(255) NOT NULL,
-    description TEXT,
-    metadata TEXT,
-    status      INTEGER               DEFAULT 1,
-    version     BIGINT       NOT NULL DEFAULT 0,
-    created_at  TIMESTAMP    NOT NULL,
-    updated_at  TIMESTAMP,
-    created_by  VARCHAR(255),
-    updated_by  VARCHAR(255)
-);
-
-CREATE TABLE IF NOT EXISTS provinces
-(
-    id         BIGSERIAL PRIMARY KEY,
-    region_id  BIGINT REFERENCES regions (id),
-    code       VARCHAR(50)  NOT NULL UNIQUE,
-    name       VARCHAR(255) NOT NULL,
-    status     INTEGER               DEFAULT 1,
-    version    BIGINT       NOT NULL DEFAULT 0,
-    created_at TIMESTAMP    NOT NULL,
+-- Create regions table
+CREATE TABLE regions (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
     updated_at TIMESTAMP,
     created_by VARCHAR(255),
     updated_by VARCHAR(255),
-    metadata TEXT
+    status INTEGER NOT NULL DEFAULT 1,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    default_win_probability DOUBLE PRECISION
 );
 
-CREATE TABLE IF NOT EXISTS events
-(
-    id                      BIGSERIAL PRIMARY KEY,
-    code                    VARCHAR(50)  NOT NULL UNIQUE,
-    name                    VARCHAR(255) NOT NULL,
-    description             TEXT,
-    start_time              TIMESTAMP    NOT NULL,
-    end_time                TIMESTAMP    NOT NULL,
-    initial_spins           INTEGER               DEFAULT 0,
-    daily_spin_limit        INTEGER               DEFAULT 0,
-    default_win_probability DOUBLE PRECISION      DEFAULT 0.0,
-    status                  INTEGER               DEFAULT 1,
-    metadata                TEXT,
-    version                 BIGINT       NOT NULL DEFAULT 0,
-    created_at              TIMESTAMP    NOT NULL,
-    updated_at              TIMESTAMP,
-    created_by              VARCHAR(255),
-    updated_by              VARCHAR(255)
+-- Create events table
+CREATE TABLE events (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    description TEXT,
+    start_time TIMESTAMP,
+    end_time TIMESTAMP,
+    initial_spins INTEGER DEFAULT 10,
+    daily_spin_limit INTEGER DEFAULT 5,
+    default_win_probability DOUBLE PRECISION DEFAULT 0.1,
+    metadata TEXT,
+    remaining_spins BIGINT
 );
 
-CREATE TABLE IF NOT EXISTS event_locations
-(
-    id                      BIGSERIAL PRIMARY KEY,
-    event_id                BIGINT       NOT NULL REFERENCES events (id),
-    region_id               BIGINT       NOT NULL REFERENCES regions (id),
-    code                    VARCHAR(50)  NOT NULL UNIQUE,
-    name                    VARCHAR(255) NOT NULL,
-    description             TEXT,
-    initial_spins           INTEGER               DEFAULT 0,
-    daily_spin_limit        INTEGER               DEFAULT 0,
-    default_win_probability DOUBLE PRECISION      DEFAULT 0.0,
-    status                  INTEGER               DEFAULT 1,
-    metadata                TEXT,
-    version                 BIGINT       NOT NULL DEFAULT 0,
-    created_at              TIMESTAMP    NOT NULL,
-    updated_at              TIMESTAMP,
-    created_by              VARCHAR(255),
-    updated_by              VARCHAR(255),
-    UNIQUE (event_id, region_id)
+-- Create provinces table
+CREATE TABLE provinces (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    default_win_probability DOUBLE PRECISION,
+    region_id BIGINT REFERENCES regions(id)
 );
 
-CREATE TABLE IF NOT EXISTS participants
-(
-    id          BIGSERIAL PRIMARY KEY,
-    code        VARCHAR(50)  NOT NULL UNIQUE,
-    name        VARCHAR(255) NOT NULL,
-    phone       VARCHAR(20)  NOT NULL UNIQUE,
-    email       VARCHAR(255),
-    account     VARCHAR(50)  NOT NULL UNIQUE,
-    metadata    TEXT,
-    province_id BIGINT REFERENCES provinces (id),
-    user_id     BIGINT REFERENCES users (id),
-    status      INTEGER               DEFAULT 1,
-    version     BIGINT       NOT NULL DEFAULT 0,
-    created_at  TIMESTAMP    NOT NULL,
-    updated_at  TIMESTAMP,
-    created_by  VARCHAR(255),
-    updated_by  VARCHAR(255)
+-- Create event_locations table
+CREATE TABLE event_locations (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    region_id BIGINT REFERENCES regions(id),
+    event_id BIGINT REFERENCES events(id)
 );
 
-CREATE TABLE IF NOT EXISTS rewards
-(
-    id                 BIGSERIAL PRIMARY KEY,
-    event_location_id  BIGINT       NOT NULL REFERENCES event_locations (id),
-    code               VARCHAR(50)  NOT NULL UNIQUE,
-    name               VARCHAR(255) NOT NULL,
-    description        TEXT,
-    points             INTEGER               DEFAULT 0,
-    points_required    INTEGER               DEFAULT 0,
-    total_quantity     INTEGER               DEFAULT 0,
-    remaining_quantity INTEGER               DEFAULT 0,
-    daily_limit        INTEGER               DEFAULT 0,
-    win_probability    DOUBLE PRECISION      DEFAULT 0.0,
-    valid_from         TIMESTAMP,
-    valid_until        TIMESTAMP,
-    status             INTEGER               DEFAULT 1,
-    metadata           TEXT,
-    version            BIGINT       NOT NULL DEFAULT 0,
-    created_at         TIMESTAMP    NOT NULL,
-    updated_at         TIMESTAMP,
-    created_by         VARCHAR(255),
-    updated_by         VARCHAR(255)
+-- Create roles table
+CREATE TABLE roles (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    name VARCHAR(50) NOT NULL,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    description TEXT,
+    priority INTEGER DEFAULT 0,
+    status INTEGER NOT NULL DEFAULT 1
 );
 
-CREATE TABLE IF NOT EXISTS golden_hours
-(
-    id                BIGSERIAL PRIMARY KEY,
-    event_location_id BIGINT       NOT NULL REFERENCES event_locations (id),
-    name              VARCHAR(255) NOT NULL,
-    description       TEXT,
-    start_time        TIMESTAMP    NOT NULL,
-    end_time          TIMESTAMP    NOT NULL,
-    win_probability   DOUBLE PRECISION      DEFAULT 0.0,
-    status            INTEGER               DEFAULT 1,
-    metadata          TEXT,
-    version           BIGINT       NOT NULL DEFAULT 0,
-    created_at        TIMESTAMP    NOT NULL,
-    updated_at        TIMESTAMP,
-    created_by        VARCHAR(255),
-    updated_by        VARCHAR(255)
+-- Create users table
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100),
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    phone_number VARCHAR(20),
+    position VARCHAR(50),
+    status INTEGER NOT NULL DEFAULT 1,
+    credentials_expired BOOLEAN DEFAULT false,
+    account_expired BOOLEAN DEFAULT false,
+    locked_until TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS participant_events
-(
-    id                BIGSERIAL PRIMARY KEY,
-    participant_id    BIGINT    NOT NULL REFERENCES participants (id),
-    event_location_id BIGINT    NOT NULL REFERENCES event_locations (id),
-    total_spins       INTEGER            DEFAULT 0,
-    available_spins   INTEGER            DEFAULT 0,
-    daily_spin_count  INTEGER            DEFAULT 0,
-    total_wins        INTEGER            DEFAULT 0,
-    total_points      INTEGER            DEFAULT 0,
-    last_sync_time    TIMESTAMP,
-    last_spin_time    TIMESTAMP,
-    status            INTEGER            DEFAULT 1,
-    metadata          TEXT,
-    version           BIGINT    NOT NULL DEFAULT 0,
-    created_at        TIMESTAMP NOT NULL,
-    updated_at        TIMESTAMP,
-    created_by        VARCHAR(255),
-    updated_by        VARCHAR(255),
-    UNIQUE (participant_id, event_location_id)
+-- Create user_roles junction table
+CREATE TABLE user_roles (
+    user_id BIGINT REFERENCES users(id),
+    role_id BIGINT REFERENCES roles(id),
+    PRIMARY KEY (user_id, role_id)
 );
 
-CREATE TABLE IF NOT EXISTS spin_histories
-(
-    id                BIGSERIAL PRIMARY KEY,
-    participant_id    BIGINT    NOT NULL REFERENCES participants (id),
-    event_location_id BIGINT    NOT NULL REFERENCES event_locations (id),
-    reward_id         BIGINT REFERENCES rewards (id),
-    golden_hour_id    BIGINT REFERENCES golden_hours (id),
-    timestamp         TIMESTAMP NOT NULL,
-    win               BOOLEAN            DEFAULT FALSE,
-    points_earned     INTEGER            DEFAULT 0,
-    points_spent      INTEGER            DEFAULT 0,
-    status            INTEGER            DEFAULT 1,
-    metadata          TEXT,
-    version           BIGINT    NOT NULL DEFAULT 0,
-    created_at        TIMESTAMP NOT NULL,
-    updated_at        TIMESTAMP,
-    created_by        VARCHAR(255),
-    updated_by        VARCHAR(255)
+-- Create golden_hours table
+CREATE TABLE golden_hours (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
+    event_id BIGINT REFERENCES events(id),
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+    win_probability DOUBLE PRECISION NOT NULL
 );
 
--- Create indexes
-CREATE INDEX IF NOT EXISTS idx_username ON users (username);
-CREATE INDEX IF NOT EXISTS idx_user_email ON users (email);
-CREATE INDEX IF NOT EXISTS idx_role_name ON roles (name);
-CREATE INDEX IF NOT EXISTS idx_event_code ON events (code);
-CREATE INDEX IF NOT EXISTS idx_event_dates ON events (start_time, end_time);
-CREATE INDEX IF NOT EXISTS idx_event_location_code ON event_locations (code);
-CREATE INDEX IF NOT EXISTS idx_participant_code ON participants (code);
-CREATE INDEX IF NOT EXISTS idx_reward_code ON rewards (code);
-CREATE INDEX IF NOT EXISTS idx_spin_history_date ON spin_histories (timestamp);
+-- Create rewards table
+CREATE TABLE rewards (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    total_quantity INTEGER NOT NULL,
+    available_quantity INTEGER NOT NULL,
+    win_probability DOUBLE PRECISION NOT NULL,
+    event_id BIGINT REFERENCES events(id)
+);
+
+-- Create participant_events table
+CREATE TABLE participant_events (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
+    participant_id BIGINT REFERENCES users(id),
+    event_id BIGINT REFERENCES events(id),
+    location_id BIGINT REFERENCES event_locations(id),
+    remaining_spins INTEGER NOT NULL DEFAULT 0,
+    total_spins INTEGER NOT NULL DEFAULT 0,
+    today_spins INTEGER NOT NULL DEFAULT 0,
+    last_spin_at TIMESTAMP,
+    UNIQUE(participant_id, event_id)
+);
+
+-- Create spin_histories table
+CREATE TABLE spin_histories (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
+    participant_event_id BIGINT REFERENCES participant_events(id),
+    reward_id BIGINT REFERENCES rewards(id),
+    spin_time TIMESTAMP NOT NULL,
+    is_win BOOLEAN NOT NULL DEFAULT false,
+    is_finalized BOOLEAN NOT NULL DEFAULT false
+);
+
+-- Create event_provinces junction table
+CREATE TABLE event_provinces (
+    event_id BIGINT REFERENCES events(id),
+    province_id BIGINT REFERENCES provinces(id),
+    PRIMARY KEY (event_id, province_id)
+);

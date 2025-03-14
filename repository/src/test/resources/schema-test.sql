@@ -1,50 +1,47 @@
-DROP TABLE IF EXISTS region_configuration;
-DROP TABLE IF EXISTS spin_history;
-DROP TABLE IF EXISTS reward_allocation;
-DROP TABLE IF EXISTS reward;
-DROP TABLE IF EXISTS event_configuration;
-DROP TABLE IF EXISTS participant_event;
-DROP TABLE IF EXISTS participant;
-DROP TABLE IF EXISTS event_location;
-DROP TABLE IF EXISTS event;
-DROP TABLE IF EXISTS province;
-DROP TABLE IF EXISTS region;
+-- Drop tables if they exist
+DROP TABLE IF EXISTS event_locations;
+DROP TABLE IF EXISTS provinces;
+DROP TABLE IF EXISTS regions;
 
-CREATE TABLE region (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+-- Create regions table
+CREATE TABLE regions (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
     name VARCHAR(100) NOT NULL,
     code VARCHAR(20) NOT NULL UNIQUE,
-    default_win_probability DOUBLE,
-    status INT NOT NULL DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by VARCHAR(50),
-    updated_by VARCHAR(50)
+    default_win_probability DOUBLE PRECISION
 );
 
-CREATE TABLE province (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+-- Create provinces table
+CREATE TABLE provinces (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
     name VARCHAR(100) NOT NULL,
     code VARCHAR(20) NOT NULL UNIQUE,
-    region_id BIGINT NOT NULL,
-    default_win_probability DOUBLE,
-    status INT NOT NULL DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by VARCHAR(50),
-    updated_by VARCHAR(50),
-    FOREIGN KEY (region_id) REFERENCES region(id)
+    default_win_probability DOUBLE PRECISION,
+    region_id BIGINT REFERENCES regions(id)
 );
 
-CREATE TABLE event_location (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+-- Create event_locations table
+CREATE TABLE event_locations (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    status INTEGER NOT NULL DEFAULT 1,
     name VARCHAR(100) NOT NULL,
     code VARCHAR(20) NOT NULL UNIQUE,
-    region_id BIGINT NOT NULL,
-    status INT NOT NULL DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by VARCHAR(50),
-    updated_by VARCHAR(50),
-    FOREIGN KEY (region_id) REFERENCES region(id)
+    region_id BIGINT REFERENCES regions(id)
 );
